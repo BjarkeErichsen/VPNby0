@@ -32,7 +32,7 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
 n_steps_givup = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
 N_EPISODES = 1000  # Total number of training episodes
-K = 1 #num planning iterations
+K = 3 #num planning iterations
 test_size = 100 #number of test attempts
 learning_rate = 3e-2
 gamma = 0.99
@@ -69,6 +69,8 @@ class Embedding(nn.Module):
         super(Embedding, self).__init__()
         hidden_units = 32
         hidden_units2 = 64
+        hidden_units_policy1 = 32
+
         self.n_observation1 = env.observation_space.shape[1]
         self.n_observation2 = env.observation_space.shape[2]
         n_state_dims = self.n_observation1*self.n_observation2
@@ -88,7 +90,6 @@ class Embedding(nn.Module):
         self.p = nn.Linear(hidden_units2, n_state_dims)
 
         #policy network stuff
-        hidden_units_policy1 = 32
         self.policyNetwork1 = nn.Linear(n_state_dims*4, hidden_units_policy1) #3 because we dont use the transition probabilities
         self.policyHead = nn.Linear(hidden_units_policy1, n_actions)
 
@@ -114,15 +115,16 @@ class Embedding(nn.Module):
         x = F.relu(self.affine1(x))
         x = F.relu(self.affine2(x))
 
-        r_out = self.r_out(x)
+        r_out = torch.sigmoid(self.r_out(x))
+
         r_out = torch.reshape(r_out, self.shape_of_board)
 
 
-        r_in = self.r_in(x)
+        r_in = torch.sigmoid(self.r_in(x))
         r_in = torch.reshape(r_in, self.shape_of_board)
 
 
-        p = self.p(x)
+        p = torch.sigmoid(self.p(x))
         p = torch.reshape(p, self.shape_of_board)
 
         #value iteration
@@ -137,6 +139,8 @@ class Embedding(nn.Module):
                             self.v[k+1, i, j] = torch.max(self.v[k, i, j], torch.max(self.v[k, i+i_dot, j+j_dot] + r_in[i+i_dot, j+j_dot] - r_out[i+i_dot, j+j_dot]))
                             
         """
+
+        """
         padding = {
                    (0, 1): (0, 0, 0, 1),
                    (1, 0): (0, 1, 0, 0),
@@ -150,12 +154,13 @@ class Embedding(nn.Module):
                     (-1, -1): (1, 0, 1, 0),  # jeg lader som om at inputtet har samme y, x notation som pytorch
                     (1, 1): (0, 1, 0, 1),  # (1, 0) giver padding på den lav indexede side (0, 1) på den højindexede side
                    }
-
+        
         for k in range(K):
             i = 0
             helper = torch.zeros((9, self.n_observation1, self.n_observation2))
             for i_dot, j_dot in env.DIRS:
                 padder = padding[(i_dot, j_dot)]
+
                 v_matrix = F.pad(self.v[max(j_dot,0 ):self.n_observation2+min(0,j_dot) , 0+max(i_dot, 0):self.n_observation1+min(i_dot, 0)], padder, "constant", 0)
                 r_in_matrix = F.pad(r_in[max(j_dot,0 ):self.n_observation2+min(0,j_dot) ,0+max(i_dot, 0):self.n_observation1+min(i_dot, 0)], padder, "constant", 0)
                 r_out_matrix = F.pad(r_out[max(j_dot,0 ):self.n_observation2+min(0,j_dot),0+max(i_dot, 0):self.n_observation1+min(i_dot, 0) ], padder, "constant", 0)
@@ -166,10 +171,37 @@ class Embedding(nn.Module):
                 i +=1
 
             self.v = helper.max(dim=0)[0]
+        """
+
+        #For all neigborhoods for all states, we define the value of the state, as the value of having taking the best action
+        #We do this for K times
+        #Notably, because we do this for all states we can get information from states infinitely long away!
+
+
+        self.v= F.pad(torch.zeros(self.shape_of_board), (1,1,1,1))
+        p     = F.pad(p, (1,1,1,1))
+        r_in  = F.pad(r_in, (1,1,1,1))
+        r_out = F.pad(r_out, (1,1,1,1))
+
+        for k in range(K):
+            i = 0
+            helper = torch.zeros((9, self.n_observation1, self.n_observation2)) #Since we dont stay we dont stay + 8 directions
+
+
+            for i_dot, j_dot in env.DIRS:
+
+                # we only need to check if this
+                helper[i] = self.v[j_dot+1:j_dot+1+self.shape_of_board[0], i_dot+1:i_dot+1+self.shape_of_board[1]] * p + r_in - r_out
+                i +=1
+            helper[8] = self.v[1:self.shape_of_board[0],   1:self.shape_of_board[1]]  #just the previous v without the padding
+            self.v = helper.max(dim=0)
+            if k < K-1:  #dont pad if its the last round
+                self.v = F.pad(self.v, (1,1,1,1))
+
 
         #policy
         input_to_policy = torch.cat((self.v.flatten(), state), 0)
-        action_logits = self.policyNetwork1(input_to_policy)
+        action_logits = F.relu(self.policyNetwork1(input_to_policy))
         action_logits = self.policyHead(action_logits)
         action_prob = F.softmax(action_logits, dim=-1)
 

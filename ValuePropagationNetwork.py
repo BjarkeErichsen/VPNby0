@@ -432,7 +432,7 @@ def play():
     while True:
         # pick best action
         probs, _ = model(state)
-        print(probs)
+
         #action = probs.argmax().item()
         m = Categorical(probs)
         action = m.sample().item()

@@ -361,7 +361,7 @@ def main():
     plt.grid(linestyle=':')
     plt.legend()
     plt.show()
-    np.save(PATH, np.array([list_of_i_episode, list_of_running_reward]))
+    np.save(f'data/{PATH}', np.array([list_of_i_episode, list_of_running_reward]))
 
 
 def play():
@@ -477,6 +477,6 @@ if __name__ == '__main__':
     eps = np.finfo(np.float32).eps.item()
 
     main()  # training the model until convergence
-    torch.save(model, f"{PATH}.model") # https://pytorch.org/tutorials/beginner/saving_loading_models.html
+    torch.save(model, f"models/{PATH}.model") # https://pytorch.org/tutorials/beginner/saving_loading_models.html
     # play()  # evaluation/testing the final model, renders the output
 

@@ -29,15 +29,15 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
                  [0, 1, 1, 0, 0, 0, 0, 0, 1, 1],
                  [1, 0, 1, 0, 1, 3, 1, 1, 0, 1]])
 
-n_steps_givup = 40  # Number of steps before giving up  #max steps allowed in train2
+GIVE_UP = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 1000#0  # Total number of training episodes
+N_EPISODES = 40  # Total number of training episodes
 K = 10 #num planning iterations
 test_size = 100 #number of test attempts
 learning_rate = 3e-2
 gamma = 0.99
 seed = 0  # 543
-max_allowed_steps = n_steps_givup #max steps allowed in test
+max_allowed_steps = GIVE_UP #max steps allowed in test
 regu_scaler = 0.002
 fps = 0
 render = False
@@ -49,6 +49,7 @@ wall_pct = 0.0
 map = 5
 map = [map] * 4
 non_diag = False
+LEVEL = 3
 
 # env = gym.make('CartPole-v1', render_mode="rgb_array")
 if seed:
@@ -58,6 +59,7 @@ if seed:
 else:
     env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
 # env.reset()
+env.set_level(LEVEL)
 
 env.reset_to(Map)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -177,7 +179,7 @@ class VPN(nn.Module):
 
         state_value = v[current_position]
 
-        return action_prob, state_value #, v # er den 2D?
+        return action_prob, state_value #, v # uncomment when extracting V
 
 
 class ActorCritc(nn.Module):
@@ -303,7 +305,7 @@ def main():
     running_reward = 0
     list_of_running_reward = []
     list_of_i_episode = []
-    # run infinitely many episodes
+    
     for i_episode in range(N_EPISODES):  # count(1):
 
         # reset environment and episode reward
@@ -313,7 +315,7 @@ def main():
         # for each episode, only run 9999 steps so that we don't
         # infinite loop while learning
 
-        for t in range(1, n_steps_givup):
+        for t in range(1, GIVE_UP):
 
             # select action from policy
             # print(f"{i_episode}, {t} - selecting action")
@@ -321,7 +323,6 @@ def main():
 
             # take the action
             if render:
-                print("WAT")
                 env.render()
                 time.sleep(fps)
             state, reward, done = env.step(action)
@@ -360,6 +361,7 @@ def main():
     plt.grid(linestyle=':')
     plt.legend()
     plt.show()
+    np.save(PATH, np.array([list_of_i_episode, list_of_running_reward]))
 
 
 def play():
@@ -464,13 +466,17 @@ def is_solved(eps=100):
 
 
 if __name__ == '__main__':
+    model_indx = 0
+    model_names = ["AC", "VPN"]
+    models = [ActorCritc, VPN]
+    PATH = f"{model_names[model_indx]}_{LEVEL}_{N_EPISODES}"
     start_time = time.time()
-    # model = VPN()  # VPN
-    model = ActorCritc()  # ActorCritc
+    model = models[model_indx]()  # VPN
+    # model = ActorCritc()  # ActorCritc
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()
 
     main()  # training the model until convergence
-    torch.save(model, "VPN_model") # https://pytorch.org/tutorials/beginner/saving_loading_models.html
+    torch.save(model, f"{PATH}.model") # https://pytorch.org/tutorials/beginner/saving_loading_models.html
     # play()  # evaluation/testing the final model, renders the output
 

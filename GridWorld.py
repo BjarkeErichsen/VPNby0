@@ -112,7 +112,6 @@ class Display():
         self.grid[AGENT][pos.p] = 1  # Error out of bounds
         rect = self._draw_circle(pos, CELL >> 2)  # x >> 2 = x / 4     # Draw agent
         pg.display.update(rect)
-    
 
     def disp_reset(self, start, goal): #TODO set agent to start position on given env.
         self.goal = goal
@@ -160,6 +159,8 @@ class Display():
         assert self.grid[0].shape == V.shape, f"Array dimensions don't match (grid) \
                                             {self.grid.shape} != {V.shape} (V)"
         V = np.round(V, 2)  # Remove decimals up to 2 points
+        # normalize V to [0, 1]
+        V_norm = (V - V.min()) / (V.max() - V.min())
         for x in range(self.W):
             for y in range(self.H):
                 if self.grid[WALL][y, x]:
@@ -170,7 +171,7 @@ class Display():
                     continue
                 text = self.font.render(str(V[pos.p]), True, WHITE)
                 try:
-                    color = [x + V[pos.p]**3 * (y - x) for x, y in zip(BLACK, GREEN)]  # Color gradient
+                    color = [x + V_norm[pos.p]**3 * (y - x) for x, y in zip(BLACK, GREEN)]  # Color gradient
                 except:
                     color = BLACK
                 self._draw_rect(pos, color)
@@ -350,7 +351,7 @@ class GridWorld():
         assert self.action_space.contains(action), err_msg
 
         self.step_count += 1
-        reward = self.step_penalty
+        reward = self.step_penalty  # Default reward
         new_pos = self.pos + self.DIRS[action]
 
         terminate = self._is_collide(new_pos, self.grid[WALL])

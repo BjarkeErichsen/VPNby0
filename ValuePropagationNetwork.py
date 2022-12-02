@@ -462,8 +462,8 @@ def is_solved(eps=100):
 
 
 if __name__ == '__main__':
-    #model = Embedding()
-    model = Policy()
+    #model = Embedding()  # VPN
+    model = Policy()  # Actor_critique
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()
 

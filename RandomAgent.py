@@ -17,8 +17,8 @@ TUHE = np.array([[1,0,0,0,0,2,0,1,0,1],
                 [1,0,1,0,1,3,1,1,0,1]])
 
 GIVE_UP = 40  # Number of steps before giving up
-N_EPISODES = 1000  # Total number of training episodes 
-LEVEL = 0
+N_EPISODES = 5000  # Total number of training episodes 
+LEVEL = 3
 PATH = f"rnd_{LEVEL}_{N_EPISODES}"
 
 log_interval = 40

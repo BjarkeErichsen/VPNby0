@@ -31,7 +31,10 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
 
 GIVE_UP = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 40  # Total number of training episodes
+N_EPISODES = 1000  # Total number of training episodes
+LEVEL = 3
+model_names = ["AC", "VPN"]
+MODEL_INDEX = 0
 K = 10 #num planning iterations
 test_size = 100 #number of test attempts
 learning_rate = 3e-2
@@ -49,7 +52,6 @@ wall_pct = 0.0
 map = 5
 map = [map] * 4
 non_diag = False
-LEVEL = 3
 
 # env = gym.make('CartPole-v1', render_mode="rgb_array")
 if seed:
@@ -465,13 +467,11 @@ def is_solved(eps=100):
             return False
 
 
-if __name__ == '__main__':
-    model_indx = 0
-    model_names = ["AC", "VPN"]
+if __name__ == '__main__':    
     models = [ActorCritc, VPN]
-    PATH = f"{model_names[model_indx]}_{LEVEL}_{N_EPISODES}"
+    PATH = f"{model_names[MODEL_INDEX]}_{LEVEL}_{N_EPISODES}"
     start_time = time.time()
-    model = models[model_indx]()  # VPN
+    model = models[MODEL_INDEX]()  # VPN
     # model = ActorCritc()  # ActorCritc
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()

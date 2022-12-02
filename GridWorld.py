@@ -619,6 +619,7 @@ if __name__ == "__main__":
 # if done, s = reset()
 
  
+# env.set_level(x)
 # 0) Reset to original map
 # 1) Random start
 # 2) Random goal

@@ -33,7 +33,7 @@ s = env.reset_to(TUHE)
 env.render()
 
 def select_action(state):
-    probs, _ = model(state)
+    probs, _, v = model(state)
 
     # create a categorical distribution over the list of probabilities of actions
     m = Categorical(probs)

@@ -38,13 +38,8 @@ env.set_level(LEVEL)
 env.render()
 
 def select_action(state):
-<<<<<<< HEAD
     probs, _ = model(state)
 
-=======
-    probs, _ = model(state)
-    
->>>>>>> Jason
     # create a categorical distribution over the list of probabilities of actions
     m = Categorical(probs)
 

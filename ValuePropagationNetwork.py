@@ -31,7 +31,7 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
 
 n_steps_givup = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 1000  # Total number of training episodes
+N_EPISODES = 1000#0  # Total number of training episodes
 K = 10 #num planning iterations
 test_size = 100 #number of test attempts
 learning_rate = 3e-2
@@ -41,32 +41,31 @@ max_allowed_steps = n_steps_givup #max steps allowed in test
 regu_scaler = 0.002
 fps = 0
 render = False
-renderTest = True
 if fps:
     render = True
 log_interval = 40
 
 wall_pct = 0.0
-map_size = 5
-map_size = [map_size] * 4
+map = 5
+map = [map] * 4
 non_diag = False
 
 # env = gym.make('CartPole-v1', render_mode="rgb_array")
 if seed:
-    env = GridWorld(map_size=map_size, seed=seed, render=render, non_diag=non_diag, rewards=(0.0, 1.0),
+    env = GridWorld(map=map, seed=seed, non_diag=non_diag, rewards=(0.0, 1.0),
                     wall_pct=wall_pct)
     torch.manual_seed(seed)
 else:
-    env = GridWorld(map_size=map_size, render=render, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
-env.reset()
+    env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
+# env.reset()
 
 env.reset_to(Map)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
-class Embedding(nn.Module):
+class VPN(nn.Module):
     """Maps input to latent space?"""
     def __init__(self):
-        super(Embedding, self).__init__()
+        super(VPN, self).__init__()
         hidden_units = 32
         hidden_units2 = 64
         hidden_units_policy1 = 32
@@ -129,53 +128,13 @@ class Embedding(nn.Module):
 
         #value iteration
 
-        """
-        for k in range(K):
-            for i in range(self.vf.n_observation1):
-                 for j in range(self.n_observation2):
-                    for i_dot, j_dot in env.DIRS: #i_dot and j_dot DOES NOT CONTAIN COORDINATES only relative positions to i, j
-                        if self.n_observation1 > i+i_dot and i+i_dot>=0 and self.n_observation2 > j+j_dot and j+j_dot>=0: #mindre eller ligmed pga størrelsen af self.v matrissen
-                            self.v[k+1, i, j] = torch.max(self.v[k, i, j], torch.max(self.v[k, i+i_dot, j+j_dot] + r_in[i+i_dot, j+j_dot] - r_out[i+i_dot, j+j_dot]))                  
-        """
-
-        """
-        padding = {
-                   (0, 1): (0, 0, 0, 1),
-                   (1, 0): (0, 1, 0, 0),
-                   (0, -1): (0, 0, 1, 0),
-                   (-1, 0): (1, 0, 0, 0),
-
-                   (-1, 1): (1, 0, 0, 1),
-                   (1, -1): (0, 1, 1, 0),
-
-                    (0, 0): (0, 0, 0, 0),
-                    (-1, -1): (1, 0, 1, 0),  # jeg lader som om at inputtet har samme y, x notation som pytorch
-                    (1, 1): (0, 1, 0, 1),  # (1, 0) giver padding på den lav indexede side (0, 1) på den højindexede side
-                   }
-        
-        for k in range(K):
-            i = 0
-            helper = torch.zeros((9, self.n_observation1, self.n_observation2))
-            for i_dot, j_dot in env.DIRS:
-                padder = padding[(i_dot, j_dot)]
-
-                v_matrix = F.pad(self.v[max(j_dot,0 ):self.n_observation2+min(0,j_dot) , 0+max(i_dot, 0):self.n_observation1+min(i_dot, 0)], padder, "constant", 0)
-                r_in_matrix = F.pad(r_in[max(j_dot,0 ):self.n_observation2+min(0,j_dot) ,0+max(i_dot, 0):self.n_observation1+min(i_dot, 0)], padder, "constant", 0)
-                r_out_matrix = F.pad(r_out[max(j_dot,0 ):self.n_observation2+min(0,j_dot),0+max(i_dot, 0):self.n_observation1+min(i_dot, 0) ], padder, "constant", 0)
-                p_matrix = F.pad(p[max(j_dot,0 ):self.n_observation2+min(0,j_dot) ,0+max(i_dot, 0):self.n_observation1+min(i_dot, 0)], padder, "constant", 0)
-                if v_matrix.shape != self.shape_of_board:
-                    print("fuck!")
-                helper[i] = v_matrix*p_matrix - r_out_matrix + r_in_matrix
-                i +=1
-
-            self.v = helper.max(dim=0)[0]
-        """
-
         #For all neigborhoods for all states, we define the value of the state, as the value of having taking the best action
         #We do this for K times
         #Notably, because we do this for all states we can get information from states infinitely long away!
 
         self.v = torch.zeros(self.shape_of_board)
+        
+        # Padding all grids with zeros
         v= F.pad(torch.zeros(self.shape_of_board), (1,1,1,1))
         p     = F.pad(p, (1,1,1,1))
         r_in  = F.pad(r_in, (1,1,1,1))
@@ -183,20 +142,31 @@ class Embedding(nn.Module):
 
         for k in range(K):
             i = 0
-            helper = torch.zeros((9, self.n_observation1, self.n_observation2)) #Since we dont stay we dont stay + 8 directions
-            for i_dot, j_dot in env.DIRS:
+            helper = torch.zeros((8, self.n_observation1, self.n_observation2)) # 8 directions
+            # helper = torch.zeros((9, self.n_observation1, self.n_observation2)) # Stay + 8 directions
+            for i_dot, j_dot in env.DIRS:  # For all directions (env uses 0 dim as x and 1 dim as y)
 
                 #logic of indexing: Applied the same for v, p, r_in, r_out
                 #we take the padded x, index only the "inner" v by 1:1+shape_of_board, then
                 #move the "square" we index in the direction of i_dot, j_dot
-                helper[i] = v[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]] * p[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]] + r_in[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]] - r_out[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]]
+                xs, xe = j_dot+1, 1+j_dot+self.shape_of_board[0]  # +1 because of padding
+                ys, ye = i_dot+1, 1+i_dot+self.shape_of_board[1]
+                # helper[i] = v[j_dot+1:1+j_dot+self.shape_of_board[0],     i_dot+1:1+i_dot+self.shape_of_board[1]] *  \
+                #             p[j_dot+1:1+j_dot+self.shape_of_board[0],     i_dot+1:1+i_dot+self.shape_of_board[1]] +  \
+                #             r_in[j_dot+1:1+j_dot+self.shape_of_board[0],  i_dot+1:1+i_dot+self.shape_of_board[1]] - \
+                #             r_out[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]]
+                helper[i] = v[xs:xe,     ys:ye] *  \
+                            p[xs:xe,     ys:ye] +  \
+                            r_in[xs:xe,  ys:ye] - \
+                            r_out[xs:xe, ys:ye]
                 i +=1
             # just the previous v without the padding
-            helper[8] = v[1:1+self.shape_of_board[0],   1:1+self.shape_of_board[1]]
+            # helper[8] = v[1:1+self.shape_of_board[0],   1:1+self.shape_of_board[1]]  # Standing still - neccesary?
 
-            v = helper.max(dim=0)[0] #max over the neighborhood
-            if k < K-1:  #dont pad if its the last round
+            v = helper.max(dim=0)[0]  # max over the neighborhood
+            if k < K-1:  # don't pad if its the last round
                 v = F.pad(v, (1,1,1,1))
+
         #policy
         input_to_policy = torch.cat((v.flatten(), state), 0)
         action_logits = F.relu(self.policyNetwork1(input_to_policy))
@@ -207,16 +177,16 @@ class Embedding(nn.Module):
 
         state_value = v[current_position]
 
-        return action_prob, state_value #, v
+        return action_prob, state_value #, v # er den 2D?
 
 
-class Policy(nn.Module):
+class ActorCritc(nn.Module):
     """
     implements both actor and critic in one model
     """
 
     def __init__(self):
-        super(Policy, self).__init__()
+        super(ActorCritc, self).__init__()
         hidden_units = 32
         hidden_units2 = 64
         self.affine1 = nn.Linear(prod(env.observation_space.shape), hidden_units)
@@ -232,6 +202,7 @@ class Policy(nn.Module):
         self.saved_actions = []
         self.rewards = []
         self.saved_probabilities_of_actions = []
+
     def forward(self, x):
         """
         forward of both actor and critic
@@ -336,7 +307,7 @@ def main():
     for i_episode in range(N_EPISODES):  # count(1):
 
         # reset environment and episode reward
-        state = env.reset(new_grid=False)
+        state = env.reset()
         ep_reward = 0
 
         # for each episode, only run 9999 steps so that we don't
@@ -350,11 +321,11 @@ def main():
 
             # take the action
             if render:
+                print("WAT")
+                env.render()
                 time.sleep(fps)
             state, reward, done = env.step(action)
 
-            # if render:
-            #     env.render()
 
             model.rewards.append(reward)
             ep_reward += reward
@@ -365,24 +336,24 @@ def main():
         running_reward = 0.02 * ep_reward + (1 - 0.02) * running_reward
 
         # perform backprop
-        # print(f"{i_episode} - finishing episode")
         finish_episode()
 
         # log results
         if i_episode % log_interval == 0:
-            print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(
-                i_episode, ep_reward, running_reward))
+            print(f'Episode {i_episode} after {round((time.time() - start_time)/60, 2)} mins \
+                    \tRunning reward: {round(running_reward, 2)}')
             list_of_i_episode.append(i_episode)
             list_of_running_reward.append(running_reward)
 
+            # Has the agent "solved" the environment?
+            # if abs(running_reward - 1.00) < eps and is_solved(100):
+            #     # if running_reward > env.spec.reward_threshold:
+            #     print("Solved! Running reward is now {} and "
+            #           "the last episode runs to {} time steps!".format(running_reward, t))
 
-            if abs(running_reward - 1.00) < eps and is_solved(100):
-                # if running_reward > env.spec.reward_threshold:
-                print("Solved! Running reward is now {} and "
-                      "the last episode runs to {} time steps!".format(running_reward, t))
-
-                break
-
+            #     break
+    # print done after episodes and time
+    print(f'Done after {round((time.time() - start_time)/60, 2)} mins')
     plt.figure(figsize=(10, 5))
     plt.plot(list_of_i_episode, list_of_running_reward, 'r.-', label='Running average')
     plt.yticks([-1, -0.5, 0, 0.5, 1])
@@ -392,10 +363,10 @@ def main():
 
 
 def play():
-    # env = GridWorld(map_size=(4,4,5,5), render=True, rewards=(0.0, 100.0))
+    # env = GridWorld(map=(4,4,5,5), rewards=(0.0, 100.0))
     model.eval()
-    env.render = True
-    state = env.reset(new_grid=False, new_start=False, new_goal=False)
+    state = env.reset()
+    env.render()
 
     wins_baseline = 0
     total_baseline = 0
@@ -407,11 +378,12 @@ def play():
         baseline_m = Categorical(baselineProps)
         baseline_action = baseline_m.sample().item()
         state, reward, done = env.step(baseline_action)
+        env.render()
 
         i += 1
         if done or i > max_allowed_steps:  # Complete or give up, max 50 steps
-            state = env.reset(new_grid=False)
-            env.render = False
+            state = env.reset()
+            env.render()
             if i <= max_allowed_steps:
                 wins_baseline += 1
             total_baseline += 1
@@ -423,8 +395,8 @@ def play():
 
 
     i = 0
-    state = env.reset(new_grid=False, new_start=False, new_goal=False)
-    env.render = renderTest
+    state = env.reset()
+    
     wins = 0
     total = 0
     while True:
@@ -443,7 +415,7 @@ def play():
         n_steps_to_win = []
         i += 1
         if done or i > max_allowed_steps:  # Complete or give up, max 50 steps
-            state = env.reset(new_grid=False)
+            state = env.reset()
             if i <= max_allowed_steps:
                 wins += 1
                 n_steps_to_win.append(i)
@@ -461,7 +433,7 @@ def is_solved(eps=100):
     """
 
     model.eval()
-    state = env.reset(new_grid=False)
+    state = env.reset()
     wins = 0
     total = 0
 
@@ -479,7 +451,7 @@ def is_solved(eps=100):
 
         i += 1
         if done:  # Complete
-            state = env.reset(new_grid=False)
+            state = env.reset()
             wins += 1
             i = 0
             if wins == eps:
@@ -492,15 +464,13 @@ def is_solved(eps=100):
 
 
 if __name__ == '__main__':
-    model = Embedding()
-    #model = Policy()
+    start_time = time.time()
+    # model = VPN()  # VPN
+    model = ActorCritc()  # ActorCritc
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()
 
-
-
     main()  # training the model until convergence
-
-
-    play()  # evaluation/testing the final model, renders the output
+    torch.save(model, "VPN_model") # https://pytorch.org/tutorials/beginner/saving_loading_models.html
+    # play()  # evaluation/testing the final model, renders the output
 

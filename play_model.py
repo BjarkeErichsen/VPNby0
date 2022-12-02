@@ -7,6 +7,10 @@ from ValuePropagationNetwork import ActorCritc, VPN
 
 FPS = 60
 GIVE_UP = 40
+PATH = "AC_3_1000"
+info = PATH.split("_")
+LEVEL = int(info[1])
+N_EPISODES = int(info[2])
 pg.init()
 pg.display.set_caption('GridWorld - Finished model')
 pg.font.init()
@@ -14,7 +18,7 @@ clock = pg.time.Clock()
 
 
 # First load the model
-model = torch.load("VPN_model")
+model = torch.load(PATH)
 model.eval()
 
 # Then create the environment
@@ -30,11 +34,17 @@ TUHE = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
                  [1, 0, 1, 0, 1, 3, 1, 1, 0, 1]])
 env = GridWorld(map=[5]*4, non_diag=False, rewards=(0.0, 1.0), wall_pct=0.5)
 s = env.reset_to(TUHE)
+env.set_level(LEVEL)
 env.render()
 
 def select_action(state):
-    probs, _, v = model(state)
+<<<<<<< HEAD
+    probs, _ = model(state)
 
+=======
+    probs, _ = model(state)
+    
+>>>>>>> Jason
     # create a categorical distribution over the list of probabilities of actions
     m = Categorical(probs)
 
@@ -62,13 +72,13 @@ while True:
         step_count = 0
         total += 1
         wins += 1
-        pg.display.set_caption('GridWorld - Finished model - Win rate: {:.2f}%'.format(wins/total*100))
+        pg.display.set_caption(f'GridWorld - Finished model - Win rate: {wins}/{total}')
     
     elif step_count > GIVE_UP:  # We lost
         s = env.reset()
         step_count = 0
         total += 1
-        pg.display.set_caption('GridWorld - Finished model - Win rate: {:.2f}%'.format(wins/total*100))
+        pg.display.set_caption(f'GridWorld - Finished model - Win rate: {wins}/{total}')
 
     # Render the environment
     env.render()

@@ -30,10 +30,11 @@ def go():
     V = V_new
     env.display_values(V)
 
-env = GridWorld(wall_pct=0.5, seed=42, render=True, non_diag=True, space_fun=go)
+env = GridWorld(wall_pct=0.5, seed=42, non_diag=True, space_fun=go)
 # grid = env.reset()
 grid = env.reset_to(TUHE)
 _, H, W = grid.shape
+env.render()
 # V = np.random.uniform(-10, 10, (H, W))
 V = np.zeros((H, W))
 # V = np.ones(grid.shape) * 2
@@ -44,8 +45,11 @@ while True:
     obs = env.process_input()
     if type(obs) == tuple:  # step return
         grid, r, done = obs
+        env.render()
+        print(done)
     elif type(obs) == np.ndarray:  # reset return
         grid = obs
         V = np.random.uniform(-10, 10, (H, W))
-        H, W = grid.shape
+        _, H, W = grid.shape
         V = np.zeros((H, W))
+        env.render()

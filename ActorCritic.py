@@ -13,6 +13,7 @@ from torch.distributions import Categorical
 from GridWorld import GridWorld
 from math import prod
 import time
+import pickle
 
 TUHE = np.array([[1,0,0,0,0,2,0,1,0,1],
                 [1,0,0,0,0,0,1,0,1,0],
@@ -31,36 +32,26 @@ N_EPISODES = 1000  # Total number of training episodes
 learning_rate = 3e-2
 gamma = 0.99
 seed = 0#543
-fps = 0
-render = False
-if fps:
+delay = 0
+render = True
+if delay:
     render = True
 log_interval = 40
 
 wall_pct = 0.0
-map_size = 5
-map_size = [map_size]*4
-non_diag = True
+map = 3
+map = [map]*4
+non_diag = False
 
-# parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
-# parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
-#                     help='discount factor (default: 0.99)')
-# parser.add_argument('--seed', type=int, default=543, metavar='N',
-#                     help='random seed (default: 543)')
-# parser.add_argument('--render', action='store_true',
-#                     help='render the environment')
-# parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-#                     help='interval between training status logs (default: 10)')
-# args = parser.parse_args()
 
 
 # env = gym.make('CartPole-v1', render_mode="rgb_array")
 if seed:
-    env = GridWorld(map_size=map_size, seed=seed, render=render, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)    
+    env = GridWorld(map=map, seed=seed, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)    
     torch.manual_seed(seed)
 else:
-    env = GridWorld(map_size=map_size, render=render, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
-env.reset()
+    env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
+# env.reset()
 
 env.reset_to(TUHE)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -188,7 +179,8 @@ def main():
     for i_episode in range(N_EPISODES): #count(1):
 
         # reset environment and episode reward
-        state = env.reset(new_grid=False)
+        state = env.reset()
+        # env.render()
         ep_reward = 0
 
         # for each episode, only run 9999 steps so that we don't
@@ -200,12 +192,11 @@ def main():
             action = select_action(state)
 
             # take the action
-            if render:
-                time.sleep(fps)
-            state, reward, done = env.step(action)
-
             # if render:
             #     env.render()
+            #     time.sleep(delay)
+            state, reward, done = env.step(action)
+            env.process_input()
 
             model.rewards.append(reward)
             ep_reward += reward
@@ -221,26 +212,27 @@ def main():
 
         # log results
         if i_episode % log_interval == 0:
-            print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(
-                  i_episode, ep_reward, running_reward))
-
+            print(f'Episode {i_episode} after {round((time.time() - start_time)/60, 2)} mins \
+                    \tRuning reward: {round(running_reward, 2)}')
+            play(1)
             if abs(running_reward - 1.00) < eps and is_solved(100):
             # if running_reward > env.spec.reward_threshold:
                 print("Solved! Running reward is now {} and "
                     "the last episode runs to {} time steps!".format(running_reward, t))
                 break
     
-def play():
+def play(total_episodes):
     # env = GridWorld(map_size=(4,4,5,5), render=True, rewards=(0.0, 100.0))
     model.eval()
-    env.render = True
-    state = env.reset(new_grid=False)
+    env.render()
+    state = env.reset()
     wins = 0
     total = 0
 
     # for i in range(100):
     i = 0
     while True:
+        env.process_input()
         # pick best action
         state = state.flatten()
         state = torch.from_numpy(state).float()
@@ -250,26 +242,28 @@ def play():
         # take action
         time.sleep(0.1)
         state, reward, done = env.step(action)
+        env.render()
 
         i += 1
-        if done or i > 50:  # Complete or give up, max 50 steps
-            state = env.reset(new_grid=False)
-            if i <= 50: 
+        if done or i > n_steps_givup:  # Complete or give up, max n_steps_givup steps
+            state = env.reset()
+            env.render()
+            if i <= n_steps_givup: 
                 wins += 1
             total += 1
             i = 0
             print(f'wins: {wins} attempts: {total}')
-            if total == 100:
+            if total == total_episodes:
+                model.train()
                 break
 
 def is_solved(eps=100):
     """Convergence test over arg 'eps' episodes
-
-       returns true If it can get 100 wins in a rough without using 50 or more, steps
+       returns true If it can get 100 wins in a row without using 50 or more, steps
     """
 
     model.eval()
-    state = env.reset(new_grid=False)
+    state = env.reset()
     wins = 0
     total = 0
 
@@ -286,20 +280,20 @@ def is_solved(eps=100):
 
         i += 1
         if done:  # Complete
-            state = env.reset(new_grid=False)            
+            state = env.reset()            
             wins += 1
             i = 0
             if wins == eps:
                 model.train()
                 return True
+
         elif i > 50:
             model.train()
             print(f'Failed evaluation: {wins}/{eps}')
             return False
 
-
-
-
 if __name__ == '__main__':
+    start_time = time.time()
     main()       #training the model until convergence
-    play()        #evaluation/testing the final model, renders the output
+    pickle.dump(model, open("actor_critique_model.p", "wb"))
+    play(100)        #evaluation/testing the final model, renders the output

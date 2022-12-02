@@ -32,7 +32,7 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
 n_steps_givup = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
 N_EPISODES = 1000  # Total number of training episodes
-K = 3 #num planning iterations
+K = 10 #num planning iterations
 test_size = 100 #number of test attempts
 learning_rate = 3e-2
 gamma = 0.99
@@ -129,15 +129,13 @@ class Embedding(nn.Module):
 
         #value iteration
 
-        self.v = torch.zeros(self.shape_of_board)
         """
         for k in range(K):
-            for i in range(selself.vf.n_observation1):
+            for i in range(self.vf.n_observation1):
                  for j in range(self.n_observation2):
                     for i_dot, j_dot in env.DIRS: #i_dot and j_dot DOES NOT CONTAIN COORDINATES only relative positions to i, j
                         if self.n_observation1 > i+i_dot and i+i_dot>=0 and self.n_observation2 > j+j_dot and j+j_dot>=0: #mindre eller ligmed pga størrelsen af self.v matrissen
-                            self.v[k+1, i, j] = torch.max(self.v[k, i, j], torch.max(self.v[k, i+i_dot, j+j_dot] + r_in[i+i_dot, j+j_dot] - r_out[i+i_dot, j+j_dot]))
-                            
+                            self.v[k+1, i, j] = torch.max(self.v[k, i, j], torch.max(self.v[k, i+i_dot, j+j_dot] + r_in[i+i_dot, j+j_dot] - r_out[i+i_dot, j+j_dot]))                  
         """
 
         """
@@ -177,8 +175,8 @@ class Embedding(nn.Module):
         #We do this for K times
         #Notably, because we do this for all states we can get information from states infinitely long away!
 
-
-        self.v= F.pad(torch.zeros(self.shape_of_board), (1,1,1,1))
+        self.v = torch.zeros(self.shape_of_board)
+        v= F.pad(torch.zeros(self.shape_of_board), (1,1,1,1))
         p     = F.pad(p, (1,1,1,1))
         r_in  = F.pad(r_in, (1,1,1,1))
         r_out = F.pad(r_out, (1,1,1,1))
@@ -186,30 +184,30 @@ class Embedding(nn.Module):
         for k in range(K):
             i = 0
             helper = torch.zeros((9, self.n_observation1, self.n_observation2)) #Since we dont stay we dont stay + 8 directions
-
-
             for i_dot, j_dot in env.DIRS:
 
-                # we only need to check if this
-                helper[i] = self.v[j_dot+1:j_dot+1+self.shape_of_board[0], i_dot+1:i_dot+1+self.shape_of_board[1]] * p + r_in - r_out
+                #logic of indexing: Applied the same for v, p, r_in, r_out
+                #we take the padded x, index only the "inner" v by 1:1+shape_of_board, then
+                #move the "square" we index in the direction of i_dot, j_dot
+                helper[i] = v[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]] * p[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]] + r_in[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]] - r_out[j_dot+1:1+j_dot+self.shape_of_board[0], i_dot+1:1+i_dot+self.shape_of_board[1]]
                 i +=1
-            helper[8] = self.v[1:self.shape_of_board[0],   1:self.shape_of_board[1]]  #just the previous v without the padding
-            self.v = helper.max(dim=0)
+            # just the previous v without the padding
+            helper[8] = v[1:1+self.shape_of_board[0],   1:1+self.shape_of_board[1]]
+
+            v = helper.max(dim=0)[0] #max over the neighborhood
             if k < K-1:  #dont pad if its the last round
-                self.v = F.pad(self.v, (1,1,1,1))
-
-
+                v = F.pad(v, (1,1,1,1))
         #policy
-        input_to_policy = torch.cat((self.v.flatten(), state), 0)
+        input_to_policy = torch.cat((v.flatten(), state), 0)
         action_logits = F.relu(self.policyNetwork1(input_to_policy))
         action_logits = self.policyHead(action_logits)
         action_prob = F.softmax(action_logits, dim=-1)
 
         #value at current state
 
-        state_value = self.v[current_position]
+        state_value = v[current_position]
 
-        return action_prob, state_value #, self.v
+        return action_prob, state_value #, v
 
 
 class Policy(nn.Module):
@@ -494,8 +492,8 @@ def is_solved(eps=100):
 
 
 if __name__ == '__main__':
-    #model = Embedding()
-    model = Policy()
+    model = Embedding()
+    #model = Policy()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()
 

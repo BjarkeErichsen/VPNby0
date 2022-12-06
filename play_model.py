@@ -7,7 +7,7 @@ from ValuePropagationNetwork import ActorCritc, VPN
 
 FPS = 60
 GIVE_UP = 40
-PATH = "AC_3_1000"
+PATH = "models/AC_3_1000"
 info = PATH.split("_")
 LEVEL = int(info[1])
 N_EPISODES = int(info[2])

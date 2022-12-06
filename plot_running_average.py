@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-PATH = 'rndm.npy'
+PATH = 'data/AC_4_40.npy'
 list_of_i_episode, list_of_running_reward = np.load(PATH)
 
 

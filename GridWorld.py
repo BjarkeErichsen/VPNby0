@@ -250,8 +250,13 @@ class GridWorld():
 
         self.reset_grid()
 
-    def set_level(self, level: int):
+    def level_up(self):
         # clasp level around 0 - 2 (exlude 3 as we don't want to resize the map)
+        level = self.level + 1
+        self.level = max(min(level, 3), 0)
+    
+    def level_down(self):
+        level = self.level - 1
         self.level = max(min(level, 3), 0)
 
     def reset(self):

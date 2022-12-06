@@ -32,7 +32,7 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
 GIVE_UP = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
 N_EPISODES = 1000  # Total number of training episodes
-LEVEL = 3
+LEVEL = 0
 model_names = ["AC", "VPN"]
 MODEL_INDEX = 0
 K = 10 #num planning iterations
@@ -61,7 +61,7 @@ if seed:
 else:
     env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
 # env.reset()
-env.set_level(LEVEL)
+# env.set_level(LEVEL)
 
 env.reset_to(Map)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -348,6 +348,10 @@ def main():
             list_of_i_episode.append(i_episode)
             list_of_running_reward.append(running_reward)
 
+            if running_reward > 0.5:  # RAiSING THE LEVEL HERE
+                env.level_up()
+                print("LEVEL UP")
+
             # Has the agent "solved" the environment?
             # if abs(running_reward - 1.00) < eps and is_solved(100):
             #     # if running_reward > env.spec.reward_threshold:
@@ -439,7 +443,6 @@ def is_solved(eps=100):
     model.eval()
     state = env.reset()
     wins = 0
-    total = 0
 
     i = 0
     while True:
@@ -469,7 +472,7 @@ def is_solved(eps=100):
 
 if __name__ == '__main__':    
     models = [ActorCritc, VPN]
-    PATH = f"{model_names[MODEL_INDEX]}_{LEVEL}_{N_EPISODES}"
+    PATH = f"{model_names[MODEL_INDEX]}_Rising_{N_EPISODES}"
     start_time = time.time()
     model = models[MODEL_INDEX]()  # VPN
     # model = ActorCritc()  # ActorCritc

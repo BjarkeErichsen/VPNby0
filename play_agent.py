@@ -7,12 +7,13 @@ from ValuePropagationNetwork import ActorCritc, VPN
 
 FPS = 60
 GIVE_UP = 40
-PATH = "models/AC_3_1000"
+PATH = "agents/AC_1_600"
 info = PATH.split("_")
+print(info)
 LEVEL = int(info[1])
 N_EPISODES = int(info[2])
 pg.init()
-pg.display.set_caption('GridWorld - Finished model')
+# pg.display.set_caption('GridWorld - Finished model')
 pg.font.init()
 clock = pg.time.Clock()
 
@@ -49,6 +50,9 @@ def select_action(state):
     # the action to take (left or right)
     return action.item()
 
+def update_caption():
+    pg.display.set_caption(f'GridWorld - FPS: {FPS} - Win rate: {wins}/{total} ~ {wins/total:.2f}')
+
 # Then run the model
 wins = 0
 total = 0 # keep score
@@ -67,17 +71,25 @@ while True:
         step_count = 0
         total += 1
         wins += 1
-        pg.display.set_caption(f'GridWorld - Finished model - Win rate: {wins}/{total}')
+        update_caption()
     
     elif step_count > GIVE_UP:  # We lost
         s = env.reset()
         step_count = 0
         total += 1
-        pg.display.set_caption(f'GridWorld - Finished model - Win rate: {wins}/{total}')
+        update_caption()
+        
 
     # Render the environment
     env.render()
     # Process the input
     env.process_input() # <- let user quit the game
+    keys = pg.key.get_pressed()
+    if keys[pg.K_UP]:
+        FPS += 1
+        update_caption()
+    elif keys[pg.K_DOWN]:
+        FPS -= 1
+        update_caption()
     # Wait a bit
     clock.tick(FPS)

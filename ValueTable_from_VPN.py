@@ -4,14 +4,16 @@ from GridWorld import GridWorld
 import torch
 from torch.distributions import Categorical
 from ValuePropagationNetwork import ActorCritc, VPN
+print("modules loaded")
 
 FPS = 60
-PATH = "VPN_0_10"
+PATH = "models/VPN_1_600_wins.model"
 
 pg.init()
 pg.display.set_caption('GridWorld - Finished model')
 pg.font.init()
 clock = pg.time.Clock()
+
 
 
 # First load the model
@@ -35,10 +37,12 @@ env = GridWorld(map=[5]*4, non_diag=False, rewards=(0.0, 1.0), wall_pct=0.5)
 s = env.reset_to(TUHE)
 env.reach = None
 env.render()
-
-# probs, _, V = model(s)
-# env.display_values(V.detach().numpy())
-# env.render()
+print("Ready")
+probs, _, V = model(s)
+V = V.detach().numpy()
+np.save(f'{PATH}_V_table', V)
+env.render()
+env.display_values(V)
 
 while True:
 

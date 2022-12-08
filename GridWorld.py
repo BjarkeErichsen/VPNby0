@@ -160,7 +160,8 @@ class Display():
                                             {self.grid.shape} != {V.shape} (V)"
         V = np.round(V, 2)  # Remove decimals up to 2 points
         # normalize V to [0, 1]
-        V_norm = (V - V.min()) / (V.max() - V.min())
+        # V_norm = (V - V.min()) / (V.max() - V.min())
+        V_norm = V
         for x in range(self.W):
             for y in range(self.H):
                 if self.grid[WALL][y, x]:
@@ -169,9 +170,12 @@ class Display():
                 if self.grid[GOAL][y, x]:
                     self._draw_rect(pos, GREEN)
                     continue
+                if self.grid[AGENT][y, x]:
+                    self._draw_circle(pos, CELL >> 2)
+                    continue
                 text = self.font.render(str(V[pos.p]), True, WHITE)
                 try:
-                    color = [x + V_norm[pos.p]**3 * (y - x) for x, y in zip(BLACK, GREEN)]  # Color gradient
+                    color = [x + V_norm[pos.p] * (y - x) for x, y in zip(BLACK, GREEN)]  # Color gradient
                 except:
                     color = BLACK
                 self._draw_rect(pos, color)
@@ -257,6 +261,9 @@ class GridWorld():
     
     def level_down(self):
         level = self.level - 1
+        self.level = max(min(level, 3), 0)
+    
+    def set_level(self, level):
         self.level = max(min(level, 3), 0)
 
     def reset(self):
@@ -578,14 +585,14 @@ class GridWorld():
                     except:
                         self.space_fun()  # For external functions
                 
-                if event.key == pg.K_UP:
-                    self.level += 1
-                    self.level = min(3, self.level)
-                    pg.display.set_caption(f'Gridworld - level {self.level}')
-                elif event.key == pg.K_DOWN:
-                    self.level -= 1
-                    self.level = max(0, self.level)
-                    pg.display.set_caption(f'Gridworld - level {self.level}')
+                # if event.key == pg.K_UP:
+                #     self.level += 1
+                #     self.level = min(3, self.level)
+                #     pg.display.set_caption(f'Gridworld - level {self.level}')
+                # elif event.key == pg.K_DOWN:
+                #     self.level -= 1
+                #     self.level = max(0, self.level)
+                #     pg.display.set_caption(f'Gridworld - level {self.level}')
 
 
 def test(env):

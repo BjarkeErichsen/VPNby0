@@ -1,7 +1,3 @@
-
-import argparse
-import gym
-
 import numpy as np
 from itertools import count
 from collections import namedtuple
@@ -31,13 +27,13 @@ Map = np.array([[1, 0, 0, 0, 0, 2, 0, 1, 0, 1],
 
 GIVE_UP = 40  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 1000  # Total number of training episodes
-LEVEL = 0
+N_EPISODES = 200  # Total number of training episodes
+LEVEL = 1
 model_names = ["AC", "VPN"]
 MODEL_INDEX = 0
 K = 10 #num planning iterations
 test_size = 100 #number of test attempts
-learning_rate = 3e-2
+learning_rate = 0.01
 gamma = 0.99
 seed = 0  # 543
 max_allowed_steps = GIVE_UP #max steps allowed in test
@@ -61,7 +57,7 @@ if seed:
 else:
     env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
 # env.reset()
-# env.set_level(LEVEL)
+env.set_level(LEVEL)
 
 env.reset_to(Map)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -181,7 +177,8 @@ class VPN(nn.Module):
 
         state_value = v[current_position]
 
-        return action_prob, state_value #, v # uncomment when extracting V
+        return action_prob, state_value # comment when extracting V
+        return action_prob, state_value, v 
 
 
 class ActorCritc(nn.Module):
@@ -307,6 +304,7 @@ def main():
     running_reward = 0
     list_of_running_reward = []
     list_of_i_episode = []
+    test_wins = []
     
     for i_episode in range(N_EPISODES):  # count(1):
 
@@ -343,20 +341,18 @@ def main():
 
         # log results
         if i_episode % log_interval == 0:
-            print(f'Episode {i_episode} after {round((time.time() - start_time)/60, 2)} mins \
-                    \tRunning reward: {round(running_reward, 2)}')
+            wins = test(100)
+            test_wins.append(wins / 100)
             list_of_i_episode.append(i_episode)
             list_of_running_reward.append(running_reward)
+            print(f'Episode {i_episode} after {round((time.time() - start_time)/60, 2)} mins \
+                    Running reward: {round(running_reward, 2)} Wins: {wins}')
 
-            if running_reward > 0.5:  # RAiSING THE LEVEL HERE
-                env.level_up()
-                print("LEVEL UP")
+            # if running_reward > 0.5:  # RAiSING THE LEVEL HERE
+            #     env.level_up()
+            #     print("LEVEL UP")
 
-            # Has the agent "solved" the environment?
-            # if abs(running_reward - 1.00) < eps and is_solved(100):
-            #     # if running_reward > env.spec.reward_threshold:
-            #     print("Solved! Running reward is now {} and "
-            #           "the last episode runs to {} time steps!".format(running_reward, t))
+            # Test the agent for data collection
 
             #     break
     # print done after episodes and time
@@ -367,7 +363,7 @@ def main():
     plt.grid(linestyle=':')
     plt.legend()
     plt.show()
-    np.save(f'data/{PATH}', np.array([list_of_i_episode, list_of_running_reward]))
+    np.save(f'data/{PATH}_wins', np.array([list_of_i_episode, list_of_running_reward, test_wins]))
 
 
 def play():
@@ -434,7 +430,7 @@ def play():
             break
     print("Average number of steps to win", sum(n_steps_to_win)/len(n_steps_to_win))
 
-def is_solved(eps=100):
+def test(eps=100):
     """Convergence test over arg 'eps' episodes
 
        returns true If it can get 100 wins in a rough without using 50 or more, steps
@@ -443,39 +439,42 @@ def is_solved(eps=100):
     model.eval()
     state = env.reset()
     wins = 0
+    total = 0
 
     i = 0
     while True:
         # pick best action
-        state = state.flatten()
-        state = torch.from_numpy(state).float()
-        probs, _ = model(state)
-        action = probs.argmax().item()
-
+        action = select_action(state)
 
         # take action
         state, reward, done = env.step(action)
+        env.render()
 
         i += 1
-        if done:  # Complete
-            state = env.reset()
+        if done:  # WIN
             wins += 1
             i = 0
-            if wins == eps:
+            total += 1
+            if total == eps:
                 model.train()
-                return True
+                return wins
+            state = env.reset()
+            env.render()
         elif i > max_allowed_steps:
-            model.train()
-            print(f'Failed evaluation: {wins}/{eps}')
-            return False
+            i = 0
+            total += 1
+            if total == eps:
+                model.train()
+                
+                return wins
+        time.sleep(0.01)
 
 
 if __name__ == '__main__':    
     models = [ActorCritc, VPN]
-    PATH = f"{model_names[MODEL_INDEX]}_Rising_{N_EPISODES}"
+    PATH = f"{model_names[MODEL_INDEX]}_{LEVEL}_{N_EPISODES}"
     start_time = time.time()
-    model = models[MODEL_INDEX]()  # VPN
-    # model = ActorCritc()  # ActorCritc
+    model = models[MODEL_INDEX]() 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()
 

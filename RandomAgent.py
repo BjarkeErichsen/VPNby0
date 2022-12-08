@@ -17,8 +17,8 @@ TUHE = np.array([[1,0,0,0,0,2,0,1,0,1],
                 [1,0,1,0,1,3,1,1,0,1]])
 
 GIVE_UP = 40  # Number of steps before giving up
-N_EPISODES = 5000  # Total number of training episodes 
-LEVEL = 3
+N_EPISODES = 200  # Total number of training episodes 
+LEVEL = 1
 PATH = f"rnd_{LEVEL}_{N_EPISODES}"
 
 log_interval = 40
@@ -33,6 +33,7 @@ env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pc
 # env.reset()
 
 env.reset_to(TUHE)
+env.set_level(LEVEL)
 # env.render()
 
 start_time = time.time()

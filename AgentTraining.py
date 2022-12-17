@@ -455,7 +455,7 @@ def test(eps=100):
 
         # take action
         state, reward, done = env.step(action)
-        env.render()
+        # env.render()
 
         i += 1
         if done:  # WIN
@@ -466,7 +466,7 @@ def test(eps=100):
                 model.train()
                 return wins
             state = env.reset()
-            env.render()
+            # env.render()
         elif i > max_allowed_steps:
             i = 0
             total += 1
@@ -476,11 +476,12 @@ def test(eps=100):
                 return wins
         time.sleep(0.01)
 
+
+models = [ActorCritc, VPN]
 model_names = ["AC", "VPN"]
 MODEL_INDEX = 0
 
 if __name__ == '__main__':    
-    models = [ActorCritc, VPN]
     PATH = f"{model_names[MODEL_INDEX]}_{LEVEL}_{N_EPISODES}"
     start_time = time.time()
     model = models[MODEL_INDEX]() 

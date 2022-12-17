@@ -52,8 +52,8 @@ if fps:
 log_interval = 40
 
 wall_pct = 0.0
-map = 5
-map = [map] * 5
+map = 4
+map = [map] * 4
 non_diag = False
 
 # env = gym.make('CartPole-v1', render_mode="rgb_array")

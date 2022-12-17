@@ -416,8 +416,8 @@ class GridWorld():
 
         # for _ in range(100):
         # Initialize randomly sized grid
+        min_x, max_x, min_y, max_y = self.map_size
         while True:
-            min_x, max_x, min_y, max_y = self.map_size
             self.W = random.randint(min_x, max_x)
             self.H = random.randint(min_y, max_y)
 

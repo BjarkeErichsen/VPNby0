@@ -3,7 +3,7 @@ import numpy as np
 from GridWorld import GridWorld
 import torch
 from torch.distributions import Categorical
-from ValuePropagationNetwork import ActorCritc, VPN
+from AgentTraining import ActorCritc, VPN
 print("modules loaded")
 
 FPS = 60

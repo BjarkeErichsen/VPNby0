@@ -13,6 +13,8 @@ C = len(list_of_i_episode)
 min_episodes = min(A, B, C)
 k = min_episodes  # plot subset of data (for different N_EPISODES) 
 
+# wiw
+
 plt.figure(figsize=(10, 5))
 plt.title(f'Comparison of models during training with random STARTS (level {LEVEL})')
 plt.plot(list_of_i_episode[:k], random[:k], 'g.-', label='random')

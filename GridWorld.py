@@ -153,6 +153,14 @@ class Display():
         center = (pos + Vec2D(0.5, 0.5)) * CELL
         return pg.draw.circle(self.screen, GREY, center.v, r)
 
+
+    def flash(self, color=GREEN):
+        self.screen.fill(color)
+        pg.display.flip()
+        pg.time.wait(50)
+        # self.disp_reset(self.start, self.goal)
+    
+    
     # ---- Value iteration ----
     def update_values(self, V):
         """Remove game elements and impose nparray V over grid"""
@@ -215,7 +223,7 @@ class GridWorld():
         pass
 
     def __init__(self, map=(5, 10, 5, 10), wall_pct=0.7, rewards=(0.0, 1.0), 
-                seed=None, non_diag=False, space_fun=None):
+                seed=None, non_diag=False, max_steps=40, space_fun=None):
         """
         Keyword arguments:
         map_size  -- int tuple of (min_x, max_x, min_y, max_y) constraining map size.
@@ -229,6 +237,7 @@ class GridWorld():
 
         self.map_size = map
         self.wall_pct = wall_pct
+        self.max_steps = max_steps
 
         self.level = 0 # change difficult externally
         self.difficulty = 0# change map size and wall density
@@ -378,6 +387,7 @@ class GridWorld():
                 terminate = True
                 done = True
                 reward = self.win_reward
+                self.display.flash()
 
             # Update grid
             self.grid[AGENT][self.pos.p] = 0
@@ -386,8 +396,9 @@ class GridWorld():
             self.last_pos = self.pos  # For rendering
             self.pos = new_pos
 
-        if self.step_count > self.H * self.W:
+        if self.step_count > self.max_steps:
             done = True # give up
+            self.display.flash(RED)
 
         return self.grid, reward, done
 

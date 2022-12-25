@@ -36,11 +36,11 @@ import time
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 100#10_000  # Total number of training episodes
+N_EPISODES = 10_000  # Total number of training episodes
 LEVEL = 4
 MAP_SIZE = 5
-TEST_COUNT = 10#200  # Number of test episodes
-log_interval = 10#400
+TEST_COUNT = 200  # Number of test episodes
+log_interval = 400
 do_intermediate_tests = True
 
 K = 10 #num planning iterations
@@ -62,10 +62,11 @@ render = False
 
 if seed:
     env = GridWorld(map=map, seed=seed, non_diag=non_diag, rewards=(0.0, 1.0),
-                    wall_pct=wall_pct)
+                    wall_pct=wall_pct, max_steps=GIVE_UP)
     torch.manual_seed(seed)
 else:
-    env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
+    env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), 
+                    wall_pct=wall_pct, max_steps=GIVE_UP)
 
 # env.reset()
 env.set_level(LEVEL)
@@ -389,15 +390,16 @@ def main():
         # Testing for wins
         if do_intermediate_tests:
             if i_episode % log_interval == 0 and i_episode > 0:
-                wins = test(TEST_COUNT)
-                test_wins.append(wins / TEST_COUNT)
+                win_ratio = test(TEST_COUNT) / TEST_COUNT
+                test_wins.append(win_ratio)
                 ith_episode.append(i_episode)
                 minutes = (time.time() - start_time)/60
+                time_left = round((minutes / i_episode) * (N_EPISODES - i_episode), 2)
+                # time_left = round(minutes * (N_EPISODES / i_episode), 2)
 
-                
-                print(f'Episode {i_episode} after {round(minutes, 2)} mins, Wins: {wins}')
-        if i_episode % 10 == 0:
-            print(f'Episode {i_episode}')
+                print(f'{i_episode / N_EPISODES}% - {round(minutes, 2)} mins ({time_left} left) - Win rate: {win_ratio}')
+        # if i_episode % 10 == 0:
+        #     print(f'Episode {i_episode}')
             # if running_reward > 0.5:  # RAiSING THE LEVEL HERE
             #     env.level_up()
             #     print("LEVEL UP")
@@ -501,12 +503,12 @@ def test(eps=10):
         action = select_action(state)
 
         # take action
-        state, _, done = env.step(action)
+        state, r, done = env.step(action)
         # env.render()
 
         i += 1
-        if done:  # WIN
-            wins += 1
+        if done:  # Game over
+            wins += 1 if r > 0 else 0
             i = 0
             total += 1
             
@@ -516,16 +518,6 @@ def test(eps=10):
             state = env.reset()
             # env.render()
 
-        elif i > max_allowed_steps:
-            i = 0
-            total += 1
-
-            if total == eps:
-                model.train()
-                return wins
-            state = env.reset()
-            # env.render()
-            
         # time.sleep(0.01)
 
 
@@ -542,6 +534,6 @@ if __name__ == '__main__':
     eps = np.finfo(np.float32).eps.item()
 
     main()  # training the model until convergence
-    torch.save(model, f"agents/{PATH}.model")
+    torch.save(model, f"agents/{PATH}")
     #play()  # evaluation/testing the final model, renders the output
 

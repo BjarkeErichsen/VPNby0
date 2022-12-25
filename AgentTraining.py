@@ -1,7 +1,8 @@
 import numpy as np
 from itertools import count
 from collections import namedtuple
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+from Plots import plot_agent
 
 
 import torch
@@ -35,8 +36,11 @@ Map = np.array([
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 5001  # Total number of training episodes
+N_EPISODES = 1000#10_000  # Total number of training episodes
 LEVEL = 4
+TEST_COUNT = 200  # Number of test episodes
+log_interval = 10
+do_intermediate_tests = True
 
 K = 10 #num planning iterations
 test_size = 100 #number of test attempts
@@ -47,31 +51,27 @@ max_allowed_steps = GIVE_UP #max steps allowed in test
 regu_scaler = 0.002
 fps = 0
 
-loss_coefficients = {"value":10, "policy":1}
+loss_coefficients = {"value":1, "policy":1}
 
-render = False
-do_intermediate_tests = False
-if fps:
-    render = True
-log_interval = 40
-
-wall_pct = 0.0
+wall_pct = 0.32
 map = 4
 map = [map] * 4
 non_diag = False
+render = False
 
-# env = gym.make('CartPole-v1', render_mode="rgb_array")
 if seed:
     env = GridWorld(map=map, seed=seed, non_diag=non_diag, rewards=(0.0, 1.0),
                     wall_pct=wall_pct)
     torch.manual_seed(seed)
 else:
     env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
+
 # env.reset()
 env.set_level(LEVEL)
 
 env.reset_to(Map)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
+
 
 class VPN(nn.Module):
     """Maps input to latent space?"""
@@ -296,7 +296,7 @@ def finish_episode(i=0):
 
     # sum up all the values of policy_losses and value_losses
     loss = torch.stack(policy_losses).sum()*loss_coefficients["policy"] + torch.stack(value_losses).sum()*loss_coefficients["value"]
-    print(torch.stack(policy_losses).sum()*loss_coefficients["policy"], torch.stack(value_losses).sum()*loss_coefficients["value"])
+    # print(torch.stack(policy_losses).sum()*loss_coefficients["policy"], torch.stack(value_losses).sum()*loss_coefficients["value"])
 
     # perform backprop
 
@@ -317,20 +317,24 @@ def finish_episode(i=0):
     del model.saved_probabilities_of_actions[:]
 
 def main():
+    test_wins = []
+    ith_episode = []
+    episode_rewards = []
+
+    # Running average
     episode_n_we_average = 50
     running_reward = 0
     list_of_running_reward = []
     list_of_i_episode = []
-    test_wins = []
-    list_of_episode_reward = []
 
     running_reward_random = 0
-    list_of_episode_reward_RANDOM = []
+    episode_rewards_RANDOM = []
     list_of_running_reward_RANDOM = []
 
 
 
     for i_episode in range(N_EPISODES):  # count(1):
+        # Run an entire episode for agent and another for random agent
 
         # reset environment and episode reward
         state = env.reset()
@@ -340,60 +344,59 @@ def main():
         # infinite loop while learning
 
         for t in range(1, GIVE_UP):
-
-            # select action from policy
-            # print(f"{i_episode}, {t} - selecting action")
             action = select_action(state)
 
-            # take the action
             if render:
                 env.render()
                 time.sleep(fps)
-            state, reward, done = env.step(action)
 
+            state, reward, done = env.step(action)
 
             model.rewards.append(reward)
             ep_reward += reward
+
             if done:
                 break
-        list_of_episode_reward.append(ep_reward)
-        if i_episode >= episode_n_we_average:
-            running_reward = sum(list_of_episode_reward[-episode_n_we_average:-1]) / len(list_of_episode_reward[-episode_n_we_average:-1])
-            list_of_running_reward.append(running_reward)
+
+        episode_rewards.append(ep_reward)
+
+        # if i_episode >= episode_n_we_average:
+        #     running_reward = sum(episode_rewards[-episode_n_we_average:-1]) / \
+        #                      len(episode_rewards[-episode_n_we_average:-1])
+        #     list_of_running_reward.append(running_reward)
+
         # perform backprop
         finish_episode()
 
-        state = env.reset()
-        ep_reward = 0
-        for _ in range(1, GIVE_UP):
-            # action = env.sample(True)
-            action = env.action_space.sample()
-            s, r, done = env.step(action)
-            ep_reward += r
-            if done:
-                break
+        # Random agent
+        # state = env.reset()
+        # ep_reward = 0
+        # for _ in range(1, GIVE_UP):
+        #     action = env.action_space.sample()
+        #     _, r, done = env.step(action)
+        #     ep_reward += r
+        #     if done:
+        #         break
 
-        list_of_episode_reward_RANDOM.append(ep_reward)
-        if i_episode >= episode_n_we_average:
-            running_reward_random = sum(list_of_episode_reward_RANDOM[-episode_n_we_average:-1]) / len(list_of_episode_reward_RANDOM[-episode_n_we_average:-1])
-            list_of_running_reward_RANDOM.append(running_reward_random)
+        # episode_rewards_RANDOM.append(ep_reward)
+        # if i_episode >= episode_n_we_average:
+        #     running_reward_random = sum(episode_rewards_RANDOM[-episode_n_we_average:-1]) / len(episode_rewards_RANDOM[-episode_n_we_average:-1])
+        #     list_of_running_reward_RANDOM.append(running_reward_random)
+        #     list_of_i_episode.append(i_episode)
 
-        if i_episode >= episode_n_we_average:
-            list_of_i_episode.append(i_episode)
 
-        # update cumulative reward #helps with tracking trainprogress
-        #running_reward = 0.02 * ep_reward + (1 - 0.02) * running_reward
-
-        # log results
+        # Testing for wins
         if do_intermediate_tests:
-            if i_episode % log_interval == 0 and i_episode!=0:
-                wins = test(10)
-                test_wins.append(wins / 10)
-                print(f'Episode {i_episode} after {round((time.time() - start_time)/60, 2)} mins \
-                     Wins: {wins}')
-        else:
-            if i_episode % 10 == 0:
-                print(f'Episode {i_episode}')
+            if i_episode % log_interval == 0 and i_episode > 0:
+                wins = test(TEST_COUNT)
+                test_wins.append(wins / TEST_COUNT)
+                ith_episode.append(i_episode)
+                minutes = (time.time() - start_time)/60
+
+                
+                print(f'Episode {i_episode} after {round(minutes, 2)} mins, Wins: {wins}')
+        if i_episode % 10 == 0:
+            print(f'Episode {i_episode}')
             # if running_reward > 0.5:  # RAiSING THE LEVEL HERE
             #     env.level_up()
             #     print("LEVEL UP")
@@ -403,14 +406,16 @@ def main():
             #     break
     # print done after episodes and time
     print(f'Done after {round((time.time() - start_time)/60, 2)} mins')
-    plt.figure(figsize=(10, 5))
-    plt.plot(list_of_i_episode, list_of_running_reward, 'r.-', label='Running average Agent')
-    plt.plot(list_of_i_episode, list_of_running_reward_RANDOM, 'y.-', label='Running average Random')
-    plt.yticks([-1, -0.5, 0, 0.5, 1])
-    plt.grid(linestyle=':')
-    plt.legend()
-    plt.show()
-    np.save(f'data/{PATH}_wins', np.array([list_of_i_episode, list_of_running_reward, test_wins]))
+    # plt.figure(figsize=(10, 5))
+    # plt.plot(list_of_i_episode, list_of_running_reward, 'r.-', label='Running average Agent')
+    # plt.plot(list_of_i_episode, list_of_running_reward_RANDOM, 'y.-', label='Running average Random')
+    # plt.yticks([-1, -0.5, 0, 0.5, 1])
+    # plt.grid(linestyle=':')
+    # plt.legend()
+    # plt.show()
+    results = np.array([ith_episode, test_wins])
+    plot_agent(results, TEST_COUNT)
+    np.save(f'data/{PATH}', results)
 
 
 def play():
@@ -485,6 +490,7 @@ def test(eps=10):
 
     model.eval()
     state = env.reset()
+    # env.render()
     wins = 0
     total = 0
 
@@ -494,32 +500,37 @@ def test(eps=10):
         action = select_action(state)
 
         # take action
-        state, reward, done = env.step(action)
-        env.render()
+        state, _, done = env.step(action)
+        # env.render()
 
         i += 1
         if done:  # WIN
             wins += 1
             i = 0
             total += 1
+            
             if total == eps:
                 model.train()
                 return wins
             state = env.reset()
-            env.render()
+            # env.render()
+
         elif i > max_allowed_steps:
             i = 0
             total += 1
+
             if total == eps:
                 model.train()
-                
                 return wins
-        time.sleep(0.01)
+            state = env.reset()
+            # env.render()
+            
+        # time.sleep(0.01)
 
 
 models = [ActorCritc, VPN]
 model_names = ["AC", "VPN"]
-MODEL_INDEX = 1
+MODEL_INDEX = 0
 
 if __name__ == '__main__':
 

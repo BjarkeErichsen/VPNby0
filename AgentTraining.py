@@ -35,7 +35,7 @@ Map = np.array([
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 10001  # Total number of training episodes
+N_EPISODES = 5001  # Total number of training episodes
 LEVEL = 4
 
 K = 10 #num planning iterations
@@ -47,7 +47,7 @@ max_allowed_steps = GIVE_UP #max steps allowed in test
 regu_scaler = 0.002
 fps = 0
 
-loss_coefficients = {"value":1, "policy":1}
+loss_coefficients = {"value":10, "policy":1}
 
 render = False
 do_intermediate_tests = False
@@ -287,8 +287,8 @@ def finish_episode(i=0):
         # calculate critic (value) loss using L1 smooth loss
         value_losses.append(F.smooth_l1_loss(value, torch.tensor([R])))  # l1 smoothed absolute error
 
-
-        """if i % 1000 == 0:
+        """
+        if i % 1000 == 0:
             print("entropy regu",  regu_scaler*entropy_regularization, "policy", -log_prob * advantage, "value", F.smooth_l1_loss(value, torch.tensor([R])))
             i+=1"""
     # reset gradients
@@ -296,7 +296,7 @@ def finish_episode(i=0):
 
     # sum up all the values of policy_losses and value_losses
     loss = torch.stack(policy_losses).sum()*loss_coefficients["policy"] + torch.stack(value_losses).sum()*loss_coefficients["value"]
-
+    print(torch.stack(policy_losses).sum()*loss_coefficients["policy"], torch.stack(value_losses).sum()*loss_coefficients["value"])
 
     # perform backprop
 

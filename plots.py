@@ -14,7 +14,7 @@ def plot_agent(data, test_count): # Used from AgentTraining after termination
     plt.figure(figsize=(10, 5))
     plt.title(f'Training Complete')
 
-    plot_win_rate(episodes, wins, 'agent', 'r', test_count)
+    plot_win_rate(episodes, wins, test_count, 'agent', 'r')
 
     plt.xlabel('Episode')
     plt.ylabel('Winning rate')

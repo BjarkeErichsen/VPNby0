@@ -26,20 +26,21 @@ import time
 #                  [0, 1, 1, 0, 0, 0, 0, 0, 1, 1],
 #                  [1, 0, 1, 0, 1, 3, 1, 1, 0, 1]])
 
-Map = np.array([
-    [1, 0, 0, 0, 2],
-    [1, 0, 0, 0, 0],
-    [0, 0, 0, 0, 1],
-    [0, 1, 1, 0, 0],
-    [1, 0, 1, 3, 1]
-    ])
+# Map = np.array([
+#     [1, 0, 0, 0, 2],
+#     [1, 0, 0, 0, 0],
+#     [0, 0, 0, 0, 1],
+#     [0, 1, 1, 0, 0],
+#     [1, 0, 1, 3, 1]
+#     ])
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 1000#10_000  # Total number of training episodes
+N_EPISODES = 100#10_000  # Total number of training episodes
 LEVEL = 4
-TEST_COUNT = 200  # Number of test episodes
-log_interval = 10
+MAP_SIZE = 5
+TEST_COUNT = 10#200  # Number of test episodes
+log_interval = 10#400
 do_intermediate_tests = True
 
 K = 10 #num planning iterations
@@ -54,7 +55,7 @@ fps = 0
 loss_coefficients = {"value":1, "policy":1}
 
 wall_pct = 0.32
-map = 4
+map = MAP_SIZE  # map_size (square)
 map = [map] * 4
 non_diag = False
 render = False
@@ -69,7 +70,7 @@ else:
 # env.reset()
 env.set_level(LEVEL)
 
-env.reset_to(Map)
+# env.reset_to(Map)
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
 
@@ -541,6 +542,6 @@ if __name__ == '__main__':
     eps = np.finfo(np.float32).eps.item()
 
     main()  # training the model until convergence
-    torch.save(model, f"agents/{PATH}.model") # https://pytorch.org/tutorials/beginner/saving_loading_models.html
+    torch.save(model, f"agents/{PATH}.model")
     #play()  # evaluation/testing the final model, renders the output
 

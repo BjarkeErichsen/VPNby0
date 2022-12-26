@@ -2,7 +2,7 @@ import numpy as np
 from itertools import count
 from collections import namedtuple
 # import matplotlib.pyplot as plt
-from Plots import plot_agent
+from plots import plot_agent
 
 
 import torch
@@ -145,7 +145,7 @@ class VPN(nn.Module):
         #Notably, because we do this for all states we can get information from states infinitely long away!
 
         self.v = torch.zeros(self.shape_of_board)
-        
+
         # Padding all grids with zeros
         v= F.pad(torch.zeros(self.shape_of_board), (1,1,1,1))
         p     = F.pad(p, (1,1,1,1))
@@ -190,7 +190,7 @@ class VPN(nn.Module):
         state_value = v[current_position]
 
         return action_prob, state_value # comment when extracting V
-        return action_prob, state_value, v 
+        return action_prob, state_value, v
 
 
 class ActorCritc(nn.Module):
@@ -394,7 +394,7 @@ def main():
                 ith_episode.append(i_episode)
                 minutes = (time.time() - start_time)/60
 
-                
+
                 print(f'Episode {i_episode} after {round(minutes, 2)} mins, Wins: {wins}')
         if i_episode % 10 == 0:
             print(f'Episode {i_episode}')
@@ -453,7 +453,7 @@ def play():
 
     i = 0
     state = env.reset()
-    
+
     wins = 0
     total = 0
     while True:
@@ -509,7 +509,7 @@ def test(eps=10):
             wins += 1
             i = 0
             total += 1
-            
+
             if total == eps:
                 model.train()
                 return wins
@@ -525,7 +525,7 @@ def test(eps=10):
                 return wins
             state = env.reset()
             # env.render()
-            
+
         # time.sleep(0.01)
 
 
@@ -537,7 +537,7 @@ if __name__ == '__main__':
 
     PATH = f"{model_names[MODEL_INDEX]}_{LEVEL}_{N_EPISODES}"
     start_time = time.time()
-    model = models[MODEL_INDEX]() 
+    model = models[MODEL_INDEX]()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     eps = np.finfo(np.float32).eps.item()
 

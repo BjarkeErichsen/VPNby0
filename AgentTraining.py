@@ -43,7 +43,7 @@ TEST_COUNT = 200  # Number of test episodes
 log_interval = 400
 do_intermediate_tests = True
 
-K = 10 #num planning iterations
+K = 5#10 #num planning iterations
 test_size = 100 #number of test attempts
 learning_rate = 0.001
 gamma = 0.99
@@ -116,9 +116,7 @@ class VPN(nn.Module):
 
         #self.values = np.zeros(())
     def forward(self, x):
-        """
-        Assumes x to be a (3, i, j) shape
-        """
+        """Assumes x to be a (3, i, j) shape"""
         current_position = (x[1]==1).nonzero()
         x = x.flatten()
 
@@ -195,9 +193,7 @@ class VPN(nn.Module):
 
 
 class ActorCritc(nn.Module):
-    """
-    implements both actor and critic in one model
-    """
+    """implements both actor and critic in one model"""
 
     def __init__(self):
         super(ActorCritc, self).__init__()
@@ -218,9 +214,7 @@ class ActorCritc(nn.Module):
         self.saved_probabilities_of_actions = []
 
     def forward(self, x):
-        """
-        forward of both actor and critic
-        """
+        """forward of both actor and critic"""
         x = x.flatten()
         x = torch.from_numpy(x).float()
 
@@ -259,9 +253,7 @@ def select_action(state):
     return action.item()
 
 def finish_episode(i=0):
-    """
-    Training code. Calculates actor and critic loss and performs backprop.
-    """
+    """Training code. Calculates actor and critic loss and performs backprop."""
 
     R = 0
     saved_actions = model.saved_actions
@@ -395,8 +387,8 @@ def main():
                 # time_left = round(minutes * (N_EPISODES / i_episode), 2)
 
                 print(f'{i_episode / N_EPISODES}% - {round(minutes, 2)} mins ({time_left} left) - Win rate: {win_ratio}')
-        # if i_episode % 10 == 0:
-        #     print(f'Episode {i_episode}')
+        if i_episode % 10 == 0:
+            print(f'Episode {i_episode}')
             # if running_reward > 0.5:  # RAiSING THE LEVEL HERE
             #     env.level_up()
             #     print("LEVEL UP")

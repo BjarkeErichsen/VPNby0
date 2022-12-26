@@ -123,6 +123,8 @@ class Display():
         elif self.step == self.max_steps:
             self.flash(RED)
             self.step = -1
+            # pg.display.quit()
+            # del self
         
         pg.display.update(rect)
 
@@ -425,6 +427,11 @@ class GridWorld():
             self.display = Display(self.grid, self.pos, self.goal, self.max_steps, self.reach)
         else:
             self.display.update(self.pos, self.last_pos)
+    
+    def close_display(self):
+        """Close pygame display"""
+        self.display = None
+        pg.display.quit()
 
     def close(self, total=False):
         """Quit pygame and script if total is flagged true."""

@@ -526,9 +526,12 @@ def test_render(trials=10):
             
             if total == trials:
                 model.train()
+                env.close_display()
                 return wins
             state = env.reset()
             env.render()
+    
+    
 
         
 

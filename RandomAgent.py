@@ -56,8 +56,7 @@ for i_episode in range(N_EPISODES):
         env.render()
 
         if done:
-            if r == 0.0:
-                give_ups += 1
+            if r == 0.0: give_ups += 1
             break
 
         env.process_input()

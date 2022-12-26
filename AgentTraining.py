@@ -36,11 +36,11 @@ import time
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 10#10_000  # Total number of training episodes
+N_EPISODES = 10_000  # Total number of training episodes
 LEVEL = 4
 MAP_SIZE = 5
-TEST_COUNT = 10#200  # Number of test episodes
-log_interval = 1#400
+TEST_COUNT = 200  # Number of test episodes
+log_interval = 400
 do_intermediate_tests = True
 
 K = 10 #num planning iterations
@@ -386,7 +386,8 @@ def main():
         # Testing for wins
         if do_intermediate_tests:
             if i_episode % log_interval == 0 and i_episode > 0:
-                win_ratio = test_render(TEST_COUNT) / TEST_COUNT
+                win_ratio = test(TEST_COUNT) / TEST_COUNT
+                # win_ratio = test_render(TEST_COUNT) / TEST_COUNT
                 test_wins.append(win_ratio)
                 ith_episode.append(i_episode)
                 minutes = (time.time() - start_time)/60
@@ -539,7 +540,7 @@ def test_render(trials=10):
 
 models = [ActorCritc, VPN]
 model_names = ["AC", "VPN"]
-MODEL_INDEX = 0
+MODEL_INDEX = 1
 
 if __name__ == '__main__':
 

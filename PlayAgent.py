@@ -61,19 +61,17 @@ def update_caption():
 # Then run the model
 wins = 0
 total = 0 # keep score
-step_count = 0
+
 while True:
     # Sample an action from the model distribution
     action = select_action(s)
     
     # Step the environment
     s, r, done = env.step(action)
-    step_count += 1
 
     # Reset if done
     if done:  # Game over
         s = env.reset()
-        step_count = 0
         total += 1
         wins += 1 if r > 0 else 0
         update_caption()

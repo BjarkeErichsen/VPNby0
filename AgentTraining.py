@@ -36,15 +36,14 @@ import time
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 10_000  # Total number of training episodes
-LEVEL = 4
+N_EPISODES = 10001  # Total number of training episodes
+LEVEL = 3
 MAP_SIZE = 5
 TEST_COUNT = 200  # Number of test episodes
 log_interval = 400
 do_intermediate_tests = True
 
-K = 10 #num planning iterations
-test_size = 100 #number of test attempts
+K = 5 #num planning iterations
 learning_rate = 0.001
 gamma = 0.99
 seed = 0  # 543

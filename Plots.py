@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+#fail
 
 def CI(p, N): return 1.96 * np.sqrt(p * (1 - p) / N)
 
@@ -26,9 +26,8 @@ def plot_agent(data, test_count): # Used from AgentTraining after termination
 def main():
     # plot_agent(np.load('data/AC_4_1200.npy'), 200)
     # return
-    N = 200 # number of episodes when measuring win rate (different than N_EPISODES)
-    LEVEL = 1
-    PATHS = [f'data/rnd_{LEVEL}_600.npy', f'data/AC_{LEVEL}_600.npy', f'data/vpn_{LEVEL}_600.npy']  # random, actor criqic, VPN
+    
+    PATHS = [f'data/rnd_{LEVEL}_{N_EPISODES}.npy', f'data/AC_{LEVEL}_{N_EPISODES}.npy', f'data/vpn_{LEVEL}_{N_EPISODES}.npy']  # random, actor criqic, VPN
 
     # PATHS = ['data/rnd_1_600.npy', 'data/AC_1_600_wins.npy', 'data/VPN_1_600_wins.npy']  # random, actor criqic, VPN
     episodes, random = np.load(PATHS.pop(0))
@@ -56,4 +55,7 @@ def main():
     plt.show()
 
 if __name__ == '__main__':
+    N = 200 # number of episodes when measuring win rate (different than N_EPISODES)
+    LEVEL = 1
+    N_EPISODES = 600
     main()

@@ -92,7 +92,7 @@ class Vec2D():
 class Display():
     """Handles all rendering"""
 
-    def __init__(self, grid, start, goal, points=None):
+    def __init__(self, grid, start, goal, max_steps, points=None):
         self.grid = grid
         self.H, self.W = grid[WALL].shape
         self.points = points
@@ -100,17 +100,30 @@ class Display():
         self.font = pg.font.Font(None, 25)
         self.disp_reset(start, goal)
 
+        self.max_steps = max_steps
+        self.step = -1  # -1, because we want to display before first step (flash logic)
+
     def update(self, pos, before=None):
         if before:
-            self.grid[AGENT][before.p] = 0  #ERROR out of bounds
+            self.grid[AGENT][before.p] = 0 
             rect = self._draw_rect(before, BLACK)  # Draw prior object (assume never leaving goal)
             pg.display.update(rect)
             if self.points and before in self.points:  # Draw points
                 rect = self._draw_circle(before, CELL >> 3)
                 pg.display.update(rect)
 
-        self.grid[AGENT][pos.p] = 1  # Error out of bounds
+        self.grid[AGENT][pos.p] = 1  
         rect = self._draw_circle(pos, CELL >> 2)  # x >> 2 = x / 4     # Draw agent
+
+        # Game over
+        self.step += 1
+        if pos == self.goal:
+            self.flash(GREEN)
+            self.step = -1
+        elif self.step == self.max_steps:
+            self.flash(RED)
+            self.step = -1
+        
         pg.display.update(rect)
 
     def disp_reset(self, start, goal): #TODO set agent to start position on given env.
@@ -223,7 +236,7 @@ class GridWorld():
         pass
 
     def __init__(self, map=(5, 10, 5, 10), wall_pct=0.7, rewards=(0.0, 1.0), 
-                seed=None, non_diag=False, max_steps=40, space_fun=None):
+                seed=None, non_diag=False, max_steps=4, space_fun=None):
         """
         Keyword arguments:
         map_size  -- int tuple of (min_x, max_x, min_y, max_y) constraining map size.
@@ -277,9 +290,9 @@ class GridWorld():
 
     def reset(self):
         self.step_count = 0
+        self.last_pos = None
         
         if self.level == 0: # Reset to original map (fetus)
-            self.last_pos = None
             self.grid[AGENT][self.pos.p] = 0
             self.pos = self.start
             self.grid[AGENT][self.start.p] = 1
@@ -287,7 +300,6 @@ class GridWorld():
             return self.grid
             
         if self.level == 1: # reset start (baby) - too easy? Sure, but learn to walk first
-            self.last_pos = None
             self.grid[AGENT][self.pos.p] = 0
             self.pos = self._random_tile(self.grid[WALL]+self.grid[GOAL], self.reach)[0]
             self.start = self.pos
@@ -296,7 +308,6 @@ class GridWorld():
             return self.grid
         
         if self.level == 2: # reset goal (toddler) 
-            self.last_pos = None
             self.grid[GOAL][self.goal.p] = 0
             self.goal = self._random_tile(self.grid[WALL]+self.grid[AGENT], self.reach)[0]
             self.grid[GOAL][self.goal.p] = 1
@@ -305,7 +316,7 @@ class GridWorld():
 
 
         if self.level == 3:  # reset start/goal (teen)
-            self.last_pos = None
+            
             self.grid[AGENT][self.pos.p] = 0
             self.grid[GOAL][self.goal.p] = 0
 
@@ -387,7 +398,6 @@ class GridWorld():
                 terminate = True
                 done = True
                 reward = self.win_reward
-                self.display.flash()
 
             # Update grid
             self.grid[AGENT][self.pos.p] = 0
@@ -398,7 +408,6 @@ class GridWorld():
 
         if self.step_count > self.max_steps:
             done = True # give up
-            self.display.flash(RED)
 
         return self.grid, reward, done
 
@@ -411,10 +420,11 @@ class GridWorld():
         # return random.randint(0, len(self.DIRS)-1)
 
     def render(self):
-        # assert self.display, "Must set render=True in init"
+        """Render grid to pygame display. User should call this after reset and step."""
         if self.last_pos is None or self.display is None:
-            self.display = Display(self.grid, self.pos, self.goal, self.reach)
-        self.display.update(self.pos, self.last_pos)
+            self.display = Display(self.grid, self.pos, self.goal, self.max_steps, self.reach)
+        else:
+            self.display.update(self.pos, self.last_pos)
 
     def close(self, total=False):
         """Quit pygame and script if total is flagged true."""
@@ -591,7 +601,9 @@ class GridWorld():
 
                 if event.key in MOVE:
                     if (action := MOVE.index(event.key)) < len(self.DIRS):
-                        return self.step(action)
+                        obs = self.step(action)
+                        env.render()
+                        return obs
 
                 if event.key == pg.K_SPACE:
                     try:
@@ -599,16 +611,6 @@ class GridWorld():
                     except:
                         self.space_fun()  # For external functions
                 
-                # if event.key == pg.K_UP:
-                #     self.level += 1
-                #     self.level = min(3, self.level)
-                #     pg.display.set_caption(f'Gridworld - level {self.level}')
-                # elif event.key == pg.K_DOWN:
-                #     self.level -= 1
-                #     self.level = max(0, self.level)
-                #     pg.display.set_caption(f'Gridworld - level {self.level}')
-
-
 def test(env):
     clock = pg.time.Clock()
     env.rendering = False
@@ -625,20 +627,16 @@ if __name__ == "__main__":
     clock = pg.time.Clock()
     clock.tick(30)
     env = GridWorld(wall_pct=0.4, map=(5, 5, 5, 5), non_diag=False, space_fun=GridWorld.test)
+    env.render()
     # test(env)
     while True:
         clock.tick(30)
-        env.render()
-        obs = env.process_input()
+        obs = env.process_input()  # step is called here
         if type(obs) == tuple:  # step return
             s, r, done = obs
             if done:
                 s = env.reset()
                 env.render()
-
-        elif type(obs) == np.ndarray:  # reset return
-            grid = obs
-            env.render()
 
 # First initililize env
 # then reset()

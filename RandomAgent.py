@@ -29,7 +29,7 @@ map = [map]*4
 non_diag = False
 
 
-env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct)
+env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct, max_steps=GIVE_UP)
 # env.reset()
 
 env.reset_to(TUHE)
@@ -48,19 +48,18 @@ for i_episode in range(N_EPISODES):
     state = env.reset()
     ep_reward = 0
 
-    for _ in range(1, GIVE_UP):
+    while True:
         # action = env.sample(True)
         action = env.action_space.sample()
         s, r, done = env.step(action)
         ep_reward += r
-        # env.render()
+        env.render()
 
         if done:
+            if r == 0.0: give_ups += 1
             break
 
         env.process_input()
-    else:
-        give_ups += 1
     
     running_reward = 0.02 * ep_reward + (1 - 0.02) * running_reward
 

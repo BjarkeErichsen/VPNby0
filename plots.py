@@ -24,8 +24,8 @@ def plot_agent(data, test_count): # Used from AgentTraining after termination
     plt.show()
 
 def main():
-    plot_agent(np.load('data/AC_4_1200.npy'), 200)
-    return
+    # plot_agent(np.load('data/AC_4_1200.npy'), 200)
+    # return
     N = 200 # number of episodes when measuring win rate (different than N_EPISODES)
     LEVEL = 1
     PATHS = [f'data/rnd_{LEVEL}_600.npy', f'data/AC_{LEVEL}_600.npy', f'data/vpn_{LEVEL}_600.npy']  # random, actor criqic, VPN

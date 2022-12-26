@@ -36,7 +36,7 @@ import time
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 10_000  # Total number of training episodes
+N_EPISODES = 10_000 + 1  # Total number of training episodes
 LEVEL = 4
 MAP_SIZE = 5
 TEST_COUNT = 200  # Number of test episodes
@@ -44,7 +44,6 @@ log_interval = 400
 do_intermediate_tests = True
 
 K = 5#10 #num planning iterations
-test_size = 100 #number of test attempts
 learning_rate = 0.001
 gamma = 0.99
 seed = 0  # 543
@@ -388,7 +387,7 @@ def main():
 
                 print(f'{i_episode / N_EPISODES}% - {round(minutes, 2)} mins ({time_left} left) - Win rate: {win_ratio}')
         if i_episode % 10 == 0:
-            print(f'Episode {i_episode}')
+            print(f'Episode {i_episode} - {(time.time() - start_time)/60} mins')
             # if running_reward > 0.5:  # RAiSING THE LEVEL HERE
             #     env.level_up()
             #     print("LEVEL UP")
@@ -396,83 +395,10 @@ def main():
             # Test the agent for data collection
 
             #     break
-    # print done after episodes and time
     print(f'Done after {round((time.time() - start_time)/60, 2)} mins')
-    # plt.figure(figsize=(10, 5))
-    # plt.plot(list_of_i_episode, list_of_running_reward, 'r.-', label='Running average Agent')
-    # plt.plot(list_of_i_episode, list_of_running_reward_RANDOM, 'y.-', label='Running average Random')
-    # plt.yticks([-1, -0.5, 0, 0.5, 1])
-    # plt.grid(linestyle=':')
-    # plt.legend()
-    # plt.show()
     results = np.array([ith_episode, test_wins])
     plot_agent(results, TEST_COUNT)
     np.save(f'data/{PATH}', results)
-
-
-def play():
-    # env = GridWorld(map=(4,4,5,5), rewards=(0.0, 100.0))
-    model.eval()
-    state = env.reset()
-    env.render()
-
-    wins_baseline = 0
-    total_baseline = 0
-    # for i in range(100):
-    i = 0
-    while True:
-        # baseline
-        baselineProps = torch.tensor([1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8, 1 / 8])
-        baseline_m = Categorical(baselineProps)
-        baseline_action = baseline_m.sample().item()
-        state, reward, done = env.step(baseline_action)
-        env.render()
-
-        i += 1
-        if done or i > max_allowed_steps:  # Complete or give up, max 50 steps
-            state = env.reset()
-            env.render()
-            if i <= max_allowed_steps:
-                wins_baseline += 1
-            total_baseline += 1
-
-            if total_baseline == test_size:
-                break
-
-    print(f'wins baseline: {wins_baseline} attempts baseline: {total_baseline}')
-
-
-    i = 0
-    state = env.reset()
-    
-    wins = 0
-    total = 0
-    while True:
-        # pick best action
-        probs, _ = model(state)
-
-        #action = probs.argmax().item()
-        m = Categorical(probs)
-        action = m.sample().item()
-
-        #vi bliver stuck i den samme position, derfor performer den bedre uden argmax
-        # take action
-        time.sleep(0.1)
-        state, reward, done = env.step(action)
-
-        n_steps_to_win = []
-        i += 1
-        if done or i > max_allowed_steps:  # Complete or give up, max 50 steps
-            state = env.reset()
-            if i <= max_allowed_steps:
-                wins += 1
-                n_steps_to_win.append(i)
-            total += 1
-            i = 0
-            print(f'wins: {wins} attempts: {total}')
-        if total == test_size:
-            break
-    print("Average number of steps to win", sum(n_steps_to_win)/len(n_steps_to_win))
 
 def test(trials=10):
     """Return win over trials"""
@@ -524,12 +450,6 @@ def test_render(trials=10):
             state = env.reset()
             env.render()
     
-    
-
-        
-
-
-
 models = [ActorCritc, VPN]
 model_names = ["AC", "VPN"]
 MODEL_INDEX = 1

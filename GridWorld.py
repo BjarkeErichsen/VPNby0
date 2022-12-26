@@ -257,14 +257,14 @@ class GridWorld():
     def level_up(self):
         # clasp level around 0 - 2 (exlude 3 as we don't want to resize the map)
         level = self.level + 1
-        self.level = max(min(level, 3), 0)
+        self.level = max(min(level, 4), 0)
     
     def level_down(self):
         level = self.level - 1
-        self.level = max(min(level, 3), 0)
+        self.level = max(min(level, 4), 0)
     
     def set_level(self, level):
-        self.level = max(min(level, 3), 0)
+        self.level = max(min(level, 4), 0)
 
     def reset(self):
         self.step_count = 0
@@ -312,23 +312,27 @@ class GridWorld():
             self.grid[GOAL][self.goal.p] = 1
 
             return self.grid
+
+        if self.level == 4:
+            return self.reset_grid()
+
         
-        if self.level == 4: # reset grid (adult)
-            self.difficulty += 1
-            add = self.difficulty // 100
-            W = self.W + add  # every 100 steps, increase width by 1
-            H = self.H + add  # every 100 steps, increase height by 1
+        # if self.level == 4: # reset grid (adult)
+        #     self.difficulty += 1
+        #     add = self.difficulty // 100
+        #     W = self.W + add  # every 100 steps, increase width by 1
+        #     H = self.H + add  # every 100 steps, increase height by 1
 
-            wall_pct = self.wall_pct * sigmoid(self.difficulty/1000)  
+        #     wall_pct = self.wall_pct * sigmoid(self.difficulty/1000)  
 
-            self.last_pos = None
-            self.grid, start, goal, self.reach = self._generate_grid(wall_pct)
-            self.observation_space = spaces.Box(0, 1, shape=self.grid.shape, dtype=int)
-            self.start = start
-            self.pos = start
-            self.goal = goal
+        #     self.last_pos = None
+        #     self.grid, start, goal, self.reach = self._generate_grid(wall_pct)
+        #     self.observation_space = spaces.Box(0, 1, shape=self.grid.shape, dtype=int)
+        #     self.start = start
+        #     self.pos = start
+        #     self.goal = goal
 
-            return self.grid
+        #     return self.grid
 
 
     def reset_grid(self):
@@ -346,6 +350,7 @@ class GridWorld():
         """Set environment to ndarray grid"""
         self.grid = self._one_hot_encode(grid)
         self.H, self.W = grid.shape
+        self.map_size = (self.W, self.W, self.H, self.H)  # For genarating new grids
         self.observation_space = spaces.Box(0, 1, shape=self.grid.shape, dtype=int)
         self.pos = Vec2D(tuple(*np.argwhere(self.grid[AGENT].T)))
         self.start = self.pos
@@ -414,10 +419,8 @@ class GridWorld():
         otherwise returns nparray grid and starting position tuple
         """
 
-        # for _ in range(100):
-        # Initialize randomly sized grid
-        min_x, max_x, min_y, max_y = self.map_size
         while True:
+            min_x, max_x, min_y, max_y = self.map_size
             self.W = random.randint(min_x, max_x)
             self.H = random.randint(min_y, max_y)
 

@@ -36,11 +36,11 @@ import time
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
-N_EPISODES = 10_000  # Total number of training episodes
+N_EPISODES = 10#10_000  # Total number of training episodes
 LEVEL = 4
 MAP_SIZE = 5
-TEST_COUNT = 200  # Number of test episodes
-log_interval = 400
+TEST_COUNT = 10#200  # Number of test episodes
+log_interval = 1#400
 do_intermediate_tests = True
 
 K = 10 #num planning iterations
@@ -345,13 +345,9 @@ def main():
         # for each episode, only run 9999 steps so that we don't
         # infinite loop while learning
 
-        for t in range(1, GIVE_UP):
+        # for t in range(1, GIVE_UP):  # REMOVE HERE: give up is placed in the environment
+        while True:
             action = select_action(state)
-
-            if render:
-                env.render()
-                time.sleep(fps)
-
             state, reward, done = env.step(action)
 
             model.rewards.append(reward)
@@ -390,7 +386,7 @@ def main():
         # Testing for wins
         if do_intermediate_tests:
             if i_episode % log_interval == 0 and i_episode > 0:
-                win_ratio = test(TEST_COUNT) / TEST_COUNT
+                win_ratio = test_render(TEST_COUNT) / TEST_COUNT
                 test_wins.append(win_ratio)
                 ith_episode.append(i_episode)
                 minutes = (time.time() - start_time)/60
@@ -485,40 +481,57 @@ def play():
             break
     print("Average number of steps to win", sum(n_steps_to_win)/len(n_steps_to_win))
 
-def test(eps=10):
-    """Convergence test over arg 'eps' episodes
-
-       returns true If it can get 100 wins in a rough without using 50 or more, steps
-    """
+def test(trials=10):
+    """Return win over trials"""
 
     model.eval()
     state = env.reset()
-    # env.render()
     wins = 0
     total = 0
 
-    i = 0
+    while True:
+        # pick best action and take action
+        action = select_action(state)
+        state, r, done = env.step(action)
+
+        if done:  # Game over
+            wins += 1 if r > 0 else 0
+            total += 1
+            
+            if total == trials:
+                model.train()
+                return wins
+            state = env.reset()
+
+def test_render(trials=10):
+    """Return win over trials and rendering"""
+
+    model.eval()
+    state = env.reset()
+    env.render()
+    wins = 0
+    total = 0
+
     while True:
         # pick best action
         action = select_action(state)
 
         # take action
         state, r, done = env.step(action)
-        # env.render()
+        env.render()
 
-        i += 1
         if done:  # Game over
             wins += 1 if r > 0 else 0
-            i = 0
             total += 1
             
-            if total == eps:
+            if total == trials:
                 model.train()
                 return wins
             state = env.reset()
-            # env.render()
+            env.render()
 
-        # time.sleep(0.01)
+        
+
 
 
 models = [ActorCritc, VPN]

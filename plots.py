@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+#fail
 
 def CI(p, N): return 1.96 * np.sqrt(p * (1 - p) / N)
 

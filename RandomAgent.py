@@ -16,14 +16,14 @@ TUHE = np.array([[1,0,0,0,0,2,0,1,0,1],
                 [0,1,1,0,0,0,0,0,1,1],
                 [1,0,1,0,1,3,1,1,0,1]])
 
-GIVE_UP = 40  # Number of steps before giving up
-N_EPISODES = 200  # Total number of training episodes 
-LEVEL = 1
+GIVE_UP = 15  # Number of steps before giving up
+N_EPISODES = 10_001  # Total number of training episodes 
+LEVEL = 3
 PATH = f"rnd_{LEVEL}_{N_EPISODES}"
 
-log_interval = 40
+# log_interval = 400
 
-wall_pct = 0.5
+wall_pct = 0.32
 map = 5
 map = [map]*4
 non_diag = False
@@ -32,16 +32,16 @@ non_diag = False
 env = GridWorld(map=map, non_diag=non_diag, rewards=(0.0, 1.0), wall_pct=wall_pct, max_steps=GIVE_UP)
 # env.reset()
 
-env.reset_to(TUHE)
+# env.reset_to(TUHE)
 env.set_level(LEVEL)
 # env.render()
 
 start_time = time.time()
 
-running_reward = 0
-list_of_running_reward = []
-list_of_i_episode = []
-give_ups = 0
+# running_reward = 0
+# list_of_running_reward = []
+
+total_reward = 0
 
 # Random shit
 for i_episode in range(N_EPISODES):
@@ -53,24 +53,23 @@ for i_episode in range(N_EPISODES):
         action = env.action_space.sample()
         s, r, done = env.step(action)
         ep_reward += r
-        env.render()
+        # env.render()
 
         if done:
-            if r == 0.0: give_ups += 1
+            total_reward += ep_reward
             break
 
-        env.process_input()
+        # env.process_input()
     
-    running_reward = 0.02 * ep_reward + (1 - 0.02) * running_reward
+    # End of episode, log stuff
+    # if i_episode % log_interval == 0:
+    #     minutes = (time.time() - start_time)/60
+    #     print(f'{round(i_episode / N_EPISODES, 2)}% - {round(minutes, 2)} mins \
+    #         Win rate: {win_ratio}')
+    #     ith_episode.append(i_episode)
 
-    if i_episode % log_interval == 0:
-            print(f'Episode {i_episode} after {round((time.time() - start_time)/60, 2)} mins \
-                    \tRunning reward: {round(running_reward, 2)}')
-            list_of_i_episode.append(i_episode)
-            list_of_running_reward.append(running_reward)
-
-print("Give ups: ", give_ups)
-np.save(f"data/{PATH}", np.array([list_of_i_episode, list_of_running_reward]))
+# np.save(f"data/{PATH}", np.array([ith_episode, list_of_running_reward]))
+print(f"Win rate: {total_reward / N_EPISODES}")  # 0.295970402959704 / 0.3000699930006999
 
 # clock = pg.time.Clock()
 # while True:

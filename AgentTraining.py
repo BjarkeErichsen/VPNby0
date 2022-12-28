@@ -26,18 +26,18 @@ import time
 #                  [0, 1, 1, 0, 0, 0, 0, 0, 1, 1],
 #                  [1, 0, 1, 0, 1, 3, 1, 1, 0, 1]])
 
-# Map = np.array([
-#     [1, 0, 0, 0, 2],
-#     [1, 0, 0, 0, 0],
-#     [0, 0, 0, 0, 1],
-#     [0, 1, 1, 0, 0],
-#     [1, 0, 1, 3, 1]
-#     ])
+Map = np.array([
+    [1, 0, 0, 0, 2],
+    [1, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1],
+    [0, 1, 1, 0, 0],
+    [1, 0, 1, 3, 1]
+    ])
 
 GIVE_UP = 15  # Number of steps before giving up  #max steps allowed in train2
 #n_step is also the number of states saved to the memory buffer before deletion
 N_EPISODES = 10_000 + 1  # Total number of training episodes
-LEVEL = 4
+LEVEL = 3
 MAP_SIZE = 5
 TEST_COUNT = 200  # Number of test episodes
 log_interval = 400
@@ -385,9 +385,9 @@ def main():
                 time_left = round((minutes / i_episode) * (N_EPISODES - i_episode), 2)
                 # time_left = round(minutes * (N_EPISODES / i_episode), 2)
 
-                print(f'{i_episode / N_EPISODES}% - {round(minutes, 2)} mins ({time_left} left) - Win rate: {win_ratio}')
+                print(f'{round(i_episode / N_EPISODES, 2)}% - {round(minutes, 2)} mins ({time_left} left) - Win rate: {win_ratio}')
         if i_episode % 10 == 0:
-            print(f'Episode {i_episode} - {(time.time() - start_time)/60} mins')
+            print(f'Episode {i_episode} - {round((time.time() - start_time)/60, 2)} mins')
             # if running_reward > 0.5:  # RAiSING THE LEVEL HERE
             #     env.level_up()
             #     print("LEVEL UP")
@@ -452,7 +452,7 @@ def test_render(trials=10):
     
 models = [ActorCritc, VPN]
 model_names = ["AC", "VPN"]
-MODEL_INDEX = 1
+MODEL_INDEX = 0
 
 if __name__ == '__main__':
 
